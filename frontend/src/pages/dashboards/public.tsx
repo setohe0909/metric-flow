@@ -1,0 +1,208 @@
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { usePublicDashboard } from '@/features/dashboards/hooks/use-dashboards';
+import { ChartRenderer } from '@/features/widgets/components/chart-renderer';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { apiClient } from '@/lib/api-client';
+import { SpotlightCard } from '@/components/spotlight-card';
+import {
+  LayoutDashboard,
+  Loader2,
+  AlertTriangle,
+  Clock,
+} from 'lucide-react';
+import ReactGridLayout, { WidthProvider } from 'react-grid-layout/legacy';
+
+const ReactGridLayoutWithWidth = WidthProvider(ReactGridLayout);
+
+export default function PublicDashboardView() {
+  const { token } = useParams<{ token: string }>();
+  const { dashboard, isLoadingDashboard, dashboardError } = usePublicDashboard(token || '');
+  const [layouts, setLayouts] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (dashboard?.widgets) {
+      setLayouts(
+        dashboard.widgets.map((w: any) => ({
+          i: w.id,
+          x: w.layoutX,
+          y: w.layoutY,
+          w: w.layoutW,
+          h: w.layoutH,
+        }))
+      );
+    }
+  }, [dashboard]);
+
+  if (isLoadingDashboard) {
+    return (
+      <div className="min-h-screen bg-[#eeefe9] bg-grid-dots flex justify-center items-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin h-8 w-8 text-[#f7a501]" />
+          <span className="text-sm text-[#4d4f46] font-mono">Cargando dashboard compartido...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (dashboardError || !dashboard) {
+    return (
+      <div className="min-h-screen bg-[#eeefe9] bg-grid-dots flex items-center justify-center p-6">
+        <div className="bg-[#eeefe9] border-2 border-[#23251d] rounded-2xl shadow-[6px_6px_0px_0px_#23251d] z-10 max-w-md w-full overflow-hidden">
+          {/* OS Window header */}
+          <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-3 flex items-center justify-between">
+            <div className="flex gap-1.5 shrink-0">
+              <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
+              <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
+              <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
+            </div>
+            <span className="text-xs font-bold text-[#23251d] font-mono">error.log</span>
+          </div>
+
+          <div className="p-6 flex flex-col items-center justify-center gap-3 text-center">
+            <AlertTriangle className="h-8 w-8 text-red-500" />
+            <h3 className="font-extrabold text-lg font-mono text-[#23251d]">Dashboard no disponible</h3>
+            <p className="text-xs text-[#4d4f46] leading-relaxed font-mono">
+              Este enlace compartido no existe, ha expirado o el dashboard ha sido configurado como privado.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#eeefe9] text-[#23251d] flex flex-col bg-grid-dots">
+      {/* Header */}
+      <header className="border-b-2 border-[#23251d] bg-[#eeefe9]/90 backdrop-blur-md px-6 py-5 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="space-y-1">
+            <h1 className="text-xl font-extrabold text-[#23251d] flex items-center gap-2.5 font-mono">
+              <LayoutDashboard className="h-5.5 w-5.5 text-[#f7a501]" />
+              {dashboard.name}
+            </h1>
+            {dashboard.description && (
+              <p className="text-xs text-[#4d4f46] max-w-3xl leading-relaxed font-mono">{dashboard.description}</p>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Canvas */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 relative z-10">
+        {(!dashboard.widgets || dashboard.widgets.length === 0) ? (
+          <div className="border-2 border-dashed border-[#23251d] rounded-2xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-[4px_4px_0px_0px_#23251d] mt-10">
+            <div className="p-4 bg-[#f4f4f0] border-2 border-[#23251d] rounded-2xl mb-4">
+              <LayoutDashboard className="h-8 w-8 text-[#f7a501]" />
+            </div>
+            <h3 className="text-base font-extrabold text-[#23251d] font-mono">Este dashboard está vacío</h3>
+            <p className="text-xs text-[#4d4f46] max-w-xs mt-1 leading-relaxed font-mono">
+              No hay widgets configurados en este dashboard en este momento.
+            </p>
+          </div>
+        ) : (
+          <div className="relative">
+            <ReactGridLayoutWithWidth
+              className="layout"
+              layout={layouts}
+              cols={12}
+              rowHeight={80}
+              isDraggable={false}
+              isResizable={false}
+              margin={[20, 20]}
+            >
+              {dashboard.widgets.map((widget) => (
+                <SpotlightCard
+                  key={widget.id}
+                  className="hover:border-[#f7a501] !p-0"
+                >
+                  {/* Retro OS Header Bar */}
+                  <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3">
+                    <div className="flex gap-1.5 shrink-0">
+                      <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
+                      <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
+                      <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
+                    </div>
+                    <span className="text-xs font-extrabold text-[#23251d] truncate font-mono flex-1 text-center select-none">
+                      {widget.title}.json
+                    </span>
+                  </div>
+
+                  {/* Chart container */}
+                  <div className="flex-1 min-h-0 p-5 bg-white">
+                    <ErrorBoundary>
+                      <PublicWidgetContainer widget={widget} token={token || ''} />
+                    </ErrorBoundary>
+                  </div>
+                </SpotlightCard>
+              ))}
+            </ReactGridLayoutWithWidth>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function PublicWidgetContainer({ widget, token }: { widget: any; token: string }) {
+  const [data, setData] = useState<Record<string, any>[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    async function loadData() {
+      try {
+        setLoading(true);
+        setError(null);
+        const { data: resData } = await apiClient.get(
+          `/dashboards/public/${token}/widgets/${widget.id}/data`
+        );
+        if (active) {
+          setData(resData.rows || resData);
+        }
+      } catch (err: any) {
+        if (active) {
+          setError(err.response?.data?.message || 'Error al ejecutar la consulta.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+    loadData();
+
+    return () => {
+      active = false;
+    };
+  }, [widget.id, token]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center text-[#4d4f46] py-6">
+        <Loader2 className="animate-spin h-5 w-5 text-[#f7a501]" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-center p-3 space-y-1 text-[#4d4f46] text-xs font-mono">
+        <Clock className="h-5 w-5 text-red-500 mb-1" />
+        <span className="text-[10px] text-red-650 font-bold truncate max-w-full">
+          Fallo al cargar datos
+        </span>
+        <p className="text-[9px] text-[#4d4f46] line-clamp-2">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <ChartRenderer
+      type={widget.type}
+      chartConfig={widget.chartConfig}
+      data={data || []}
+    />
+  );
+}
