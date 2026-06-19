@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique
+  passwordHash String       @map("password_hash")
+  firstName    String?      @map("first_name")
+  lastName     String?      @map("last_name")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  memberships  Membership[]
+  queries      Query[]
+  dashboards   Dashboard[]
+  executions   Execution[]
+
+  @@map("users")
+}
+
+model Organization {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String       @unique
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  memberships Membership[]
+  datasources Datasource[]
+  queries     Query[]
+  dashboards  Dashboard[]
+  executions  Execution[]
+
+  @@map("organizations")
+}
+
+enum Role {
+  owner
+  admin
+  viewer
+}
+
+model Membership {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  role           Role
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId], name: "unique_user_organization")
+  @@map("memberships")
+}
+
+model Datasource {
+  id                 String       @id @default(uuid()) @db.Uuid
+  organizationId     String       @map("organization_id") @db.Uuid
+  name               String
+  type               String // postgres, mysql, sqlite, csv
+  connectionSettings String       @map("connection_settings") // AES-256 Encrypted JSON
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  queries            Query[]
+
+  @@map("datasources")
+}
+
+model Query {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  datasourceId   String?      @map("datasource_id") @db.Uuid
+  name           String
+  description    String?
+  querySql       String       @map("query_sql")
+  createdByUserId String?      @map("created_by_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  datasource     Datasource?  @relation(fields: [datasourceId], references: [id], onDelete: SetNull)
+  createdByUser  User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  widgets        Widget[]
+  executions     Execution[]
+
+  @@map("queries")
+}
+
+model Dashboard {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  name           String
+  description    String?
+  isPublic       Boolean      @default(false) @map("is_public")
+  shareToken     String?      @unique @map("share_token")
+  createdByUserId String?      @map("created_by_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUser  User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  widgets        Widget[]
+
+  @@map("dashboards")
+}
+
+model Widget {
+  id          String    @id @default(uuid()) @db.Uuid
+  dashboardId String    @map("dashboard_id") @db.Uuid
+  queryId     String?   @map("query_id") @db.Uuid
+  title       String
+  type        String    // table, bar, line, kpi, pie
+  chartConfig Json      @map("chart_config")
+  layoutX     Int       @map("layout_x")
+  layoutY     Int       @map("layout_y")
+  layoutW     Int       @map("layout_w")
+  layoutH     Int       @map("layout_h")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  query       Query?    @relation(fields: [queryId], references: [id], onDelete: SetNull)
+
+  @@map("widgets")
+}
+
+model Execution {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  queryId        String?      @map("query_id") @db.Uuid
+  userId         String?      @map("user_id") @db.Uuid
+  sqlExecuted    String       @map("sql_executed")
+  durationMs     Int          @map("duration_ms")
+  rowCount       Int          @map("row_count")
+  status         String       // success, error
+  errorMessage   String?      @map("error_message")
+  executedAt     DateTime     @default(now()) @map("executed_at") @db.Timestamptz
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  query          Query?       @relation(fields: [queryId], references: [id], onDelete: SetNull)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("executions")
+}
