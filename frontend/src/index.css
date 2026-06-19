@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+/* PostHog Retro Light/Cream Palette & Font Defaults */
+body {
+  background-color: #eeefe9; /* Warm Cream Canvas */
+  color: #23251d; /* Deep Olive Charcoal */
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Fondo con rejilla de puntos estilo PostHog */
+.bg-grid-dots {
+  background-image: radial-gradient(rgba(35, 37, 29, 0.09) 1.3px, transparent 1.3px);
+  background-size: 20px 20px;
+}
+
+/* Botón retro primario amarillo-naranja de PostHog */
+.btn-retro-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: #23251d;
+  background-color: #f7a501; /* PostHog Yellow-Orange */
+  border: 2px solid #23251d;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  box-shadow: 3px 3px 0px 0px #23251d;
+  transition: all 100ms ease;
+  cursor: pointer;
+}
+.btn-retro-primary:hover {
+  box-shadow: 1px 1px 0px 0px #23251d;
+  transform: translate(2px, 2px);
+  background-color: #ffb81c;
+}
+.btn-retro-primary:active {
+  box-shadow: 0px 0px 0px 0px #23251d;
+  transform: translate(3px, 3px);
+}
+.btn-retro-primary:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Botón retro secundario de PostHog */
+.btn-retro-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #23251d;
+  background-color: #f4f4f0; /* Retro light beige */
+  border: 2px solid #23251d;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  box-shadow: 3px 3px 0px 0px #23251d;
+  transition: all 100ms ease;
+  cursor: pointer;
+}
+.btn-retro-secondary:hover {
+  background-color: #ffffff;
+  box-shadow: 1px 1px 0px 0px #23251d;
+  transform: translate(2px, 2px);
+}
+.btn-retro-secondary:active {
+  box-shadow: 0px 0px 0px 0px #23251d;
+  transform: translate(3px, 3px);
+}
+
+/* Botón retro de peligro */
+.btn-retro-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #23251d;
+  background-color: #ffa4a4; /* Retro red */
+  border: 2px solid #23251d;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.875rem;
+  box-shadow: 3px 3px 0px 0px #23251d;
+  transition: all 100ms ease;
+  cursor: pointer;
+}
+.btn-retro-danger:hover {
+  background-color: #ffbebe;
+  box-shadow: 1px 1px 0px 0px #23251d;
+  transform: translate(2px, 2px);
+}
+.btn-retro-danger:active {
+  box-shadow: 0px 0px 0px 0px #23251d;
+  transform: translate(3px, 3px);
+}
+
+/* Estilo de Tarjetas Spotlight de Irisify en Modo Claro */
+.spotlight-card-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(247, 165, 1, 0.05) 0%,
+    rgba(59, 130, 246, 0.02) 60%,
+    transparent 100%
+  );
+  transition: opacity 300ms ease;
+  z-index: 0;
+}
+
+.spotlight-card-border {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: radial-gradient(
+    250px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(247, 165, 1, 0.35) 0%,
+    rgba(59, 130, 246, 0.25) 50%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  z-index: 10;
+}
+
+/* React grid layout drag handles & custom active placeholder styling */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(247, 165, 1, 0.08) !important;
+  border: 2px dashed #f7a501 !important;
+  border-radius: 1rem !important;
+}
+.react-grid-item .react-resizable-handle::after {
+  border-right: 2px solid #a3a49e !important;
+  border-bottom: 2px solid #a3a49e !important;
+}
+.react-grid-item:hover .react-resizable-handle::after {
+  border-color: #f7a501 !important;
+}
+
+/* Mac OS retro windows control circles */
+.window-circle-red {
+  background-color: #ff5f56;
+  border: 1px solid #e0443e;
+}
+.window-circle-yellow {
+  background-color: #ffbd2e;
+  border: 1px solid #dea123;
+}
+.window-circle-green {
+  background-color: #27c93f;
+  border: 1px solid #1aab29;
+}
