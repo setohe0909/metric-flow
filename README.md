@@ -9,6 +9,7 @@
     <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-20232a?style=flat-square&logo=react&logoColor=61dafb" alt="React 19" /></a>
     <a href="https://nestjs.com/"><img src="https://img.shields.io/badge/NestJS-11-e0234e?style=flat-square&logo=nestjs&logoColor=white" alt="NestJS 11" /></a>
     <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-15-4169e1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 15" /></a>
+    <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT" /></a>
   </p>
 </div>
 
@@ -189,7 +190,7 @@ For security-sensitive reports, do not open a public issue. Contact the reposito
 
 ## License
 
-No open-source license has been added yet. Until a license file is published, the repository's contents remain subject to standard copyright restrictions.
+MetricFlow is open-source software licensed under the [MIT License](LICENSE.md).
 
 ---
 
