@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160" role="img" aria-labelledby="title desc">
+  <title id="title">MetricFlow</title>
+  <desc id="desc">MetricFlow database mark and wordmark</desc>
+  <rect width="640" height="160" rx="28" fill="#eeefe9"/>
+  <g transform="translate(34 24)">
+    <rect x="6" y="6" width="100" height="100" rx="22" fill="#f7a501" stroke="#23251d" stroke-width="6"/>
+    <ellipse cx="56" cy="35" rx="28" ry="12" fill="none" stroke="#23251d" stroke-width="6"/>
+    <path d="M28 35v21c0 7 13 12 28 12s28-5 28-12V35M28 56v21c0 7 13 12 28 12s28-5 28-12V56" fill="none" stroke="#23251d" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <text x="166" y="99" fill="#23251d" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="64" font-weight="800" letter-spacing="-4">Metric<tspan fill="#f7a501">Flow</tspan></text>
+</svg>
