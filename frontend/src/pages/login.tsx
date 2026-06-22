@@ -31,7 +31,7 @@ export default function Login() {
             <Database className="h-5 w-5" />
           </div>
           <span className="text-2xl font-bold tracking-tight" style={{ color: '#23251d' }}>
-            Query<span style={{ color: '#f7a501' }}>Lens</span>
+            Metric<span style={{ color: '#f7a501' }}>Flow</span>
           </span>
         </div>
 

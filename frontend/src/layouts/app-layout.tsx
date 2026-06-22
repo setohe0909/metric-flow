@@ -1,21 +1,45 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/use-auth';
+import { useOrgStore } from '@/store/use-org-store';
 import Sidebar from '@/components/sidebar';
-import { Loader2 } from 'lucide-react';
+import { Database, Loader2 } from 'lucide-react';
 
 export default function AppLayout() {
   const { isAuthenticated, isLoadingProfile } = useAuth();
+  // El token en el store es la señal más temprana de autenticación.
+  // Mientras el perfil carga (y ya hay token), mostramos el loader
+  // en lugar de redirigir — esto evita el race condition post-login.
+  const token = useOrgStore((s) => s.token);
+  const hasToken = !!token;
 
-  if (isLoadingProfile) {
+  // Si hay token pero el perfil aún no cargó → mostrar loader
+  if (hasToken && isLoadingProfile) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 gap-3">
-        <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
-        <span className="text-sm font-medium tracking-wide">Cargando QueryLens...</span>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-4"
+        style={{ backgroundColor: '#eeefe9' }}
+      >
+        <div
+          className="p-3 rounded-2xl"
+          style={{ backgroundColor: '#23251d', boxShadow: '4px 4px 0px 0px #f7a501' }}
+        >
+          <Database className="h-7 w-7" style={{ color: '#f7a501' }} />
+        </div>
+        <div className="flex items-center gap-2" style={{ color: '#23251d' }}>
+          <Loader2 className="animate-spin h-4 w-4" />
+          <span className="text-sm font-semibold">Cargando MetricFlow...</span>
+        </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  // Sin token y sin usuario → redirigir al login
+  if (!hasToken && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Perfil cargó y no hay usuario válido → redirigir al login
+  if (!isLoadingProfile && !isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 

@@ -12,12 +12,12 @@ export const apiClient = axios.create({
 // Interceptor de peticiones para inyectar token y organización activa
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('querylens_token');
+    const token = localStorage.getItem('metricflow_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    const activeOrgId = localStorage.getItem('querylens_active_org_id');
+    const activeOrgId = localStorage.getItem('metricflow_active_org_id');
     if (activeOrgId) {
       config.headers['X-Organization-Id'] = activeOrgId;
     }
@@ -35,8 +35,8 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Limpiar credenciales y redirigir a login si expira
-      localStorage.removeItem('querylens_token');
-      localStorage.removeItem('querylens_active_org_id');
+      localStorage.removeItem('metricflow_token');
+      localStorage.removeItem('metricflow_active_org_id');
       if (
         window.location.pathname !== '/login' &&
         window.location.pathname !== '/signup' &&
