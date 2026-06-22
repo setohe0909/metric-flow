@@ -1,50 +1,113 @@
-<div align="center">
-  <img src="docs/assets/metricflow-logo.svg" alt="MetricFlow" width="520" />
+<p align="center">
+  <img src="docs/logo.png" alt="MetricFlow Logo" width="160" />
+</p>
 
-  <p><strong>Connect your data, write SQL, and turn results into shareable dashboards.</strong></p>
+<h1 align="center">MetricFlow</h1>
 
-  <p>
-    <a href="https://github.com/setohe0909/metric-flow"><img src="https://img.shields.io/badge/status-active%20development-f7a501?style=flat-square" alt="Project status: active development" /></a>
-    <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5%20%7C%206-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript" /></a>
-    <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-20232a?style=flat-square&logo=react&logoColor=61dafb" alt="React 19" /></a>
-    <a href="https://nestjs.com/"><img src="https://img.shields.io/badge/NestJS-11-e0234e?style=flat-square&logo=nestjs&logoColor=white" alt="NestJS 11" /></a>
-    <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-15-4169e1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 15" /></a>
-    <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT" /></a>
-  </p>
-</div>
+<p align="center">
+  <strong>Self-hosted SQL analytics &amp; dashboard platform for data-driven teams.</strong><br/>
+  Connect your databases, write SQL, visualize results, and share dashboards — all in one place.
+</p>
 
-## What is MetricFlow?
+<p align="center">
+  <a href="https://github.com/setohe0909/metric-flow/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-f7a501?style=flat-square&labelColor=23251d" alt="License: MIT" />
+  </a>
+  <a href="https://github.com/setohe0909/metric-flow">
+    <img src="https://img.shields.io/badge/version-0.1.0--alpha-f7a501?style=flat-square&labelColor=23251d" alt="Version" />
+  </a>
+  <img src="https://img.shields.io/badge/NestJS-11-f7a501?style=flat-square&labelColor=23251d&logo=nestjs&logoColor=white" alt="NestJS" />
+  <img src="https://img.shields.io/badge/React-19-f7a501?style=flat-square&labelColor=23251d&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-6-f7a501?style=flat-square&labelColor=23251d&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/PostgreSQL-15-f7a501?style=flat-square&labelColor=23251d&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/PRs-welcome-f7a501?style=flat-square&labelColor=23251d" alt="PRs Welcome" />
+</p>
 
-MetricFlow is a self-hosted analytics workspace for teams that need a focused path from raw data to useful dashboards. It brings datasource management, a browser-based SQL editor, configurable widgets, and dashboard sharing into one multi-tenant application.
+---
 
-> [!IMPORTANT]
-> MetricFlow is under active development. APIs, setup steps, and data models may change before the first stable release.
+## ✨ What is MetricFlow?
 
-## Highlights
+**MetricFlow** is a self-hosted, open-source business intelligence platform that lets you:
 
-| Capability | What it provides |
-| --- | --- |
-| **Datasource connections** | Connect PostgreSQL, MySQL, and SQLite databases or import CSV data. |
-| **SQL workspace** | Explore schemas, write queries with Monaco-powered editing, and inspect tabular results. |
-| **Dashboard builder** | Arrange responsive, drag-and-drop dashboards with persisted layouts. |
-| **Visualization widgets** | Build tables, bar charts, line charts, pie charts, and KPI cards. |
-| **Public sharing** | Share selected dashboards through token-based public URLs. |
-| **Organizations** | Isolate users, connections, queries, and dashboards by organization and role. |
-| **Credential protection** | Store datasource connection settings as encrypted payloads. |
+- 🔌 **Connect** to PostgreSQL, MySQL, SQLite, or upload CSV files
+- 🧠 **Write SQL** in a rich Monaco editor with live query execution
+- 📊 **Build charts** — bar, line, pie, KPI cards, and data tables
+- 🗂️ **Compose dashboards** with drag-and-drop widget layouts
+- 🔗 **Share dashboards** publicly via secure share tokens
+- 🏢 **Multi-tenant** — organizations, members, and role-based access (owner / admin / viewer)
+- 🔐 **Secure** — AES-256 encrypted datasource credentials, JWT authentication
 
-## Preview
+---
 
-<div align="center">
-  <img src="frontend/src/assets/hero.png" alt="MetricFlow product preview" width="343" />
-</div>
+## 🖥️ Tech Stack
 
-## Quick start
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 19, Vite 5, TypeScript, TailwindCSS v4 |
+| **State / Data** | TanStack Query v5, Zustand v5 |
+| **Charts** | Recharts v3 |
+| **SQL Editor** | Monaco Editor |
+| **Backend** | NestJS 11, TypeScript |
+| **ORM** | Prisma 6 |
+| **Database** | PostgreSQL 15 (primary store) |
+| **Auth** | JWT + Passport.js, bcrypt |
+| **Drivers** | `pg`, `mysql2`, `sqlite3`, `csv-parse` |
+| **Infra** | Docker Compose |
+
+---
+
+## 📐 Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Browser (React 19)                │
+│  Login · Signup · Datasources · SQL Editor ·        │
+│  Query Library · Dashboard Builder · Widget Creator │
+└────────────────────────┬────────────────────────────┘
+                         │ HTTP / REST
+┌────────────────────────▼────────────────────────────┐
+│                 NestJS API (port 3000)               │
+│  auth · organizations · datasource · queries ·      │
+│  query-engine · dashboard · widget                  │
+└──────┬─────────────────────────────┬────────────────┘
+       │ Prisma ORM                  │ Driver per datasource
+       ▼                             ▼
+  PostgreSQL 15             PostgreSQL / MySQL /
+  (metadata store)          SQLite / CSV (user data)
+```
+
+### Key Design Decisions
+
+- **Multi-tenancy via Organizations** — every resource (datasource, query, dashboard, widget, execution log) is scoped to an `Organization`. Users join orgs with a `Role` (owner | admin | viewer).
+- **Encrypted credentials** — datasource connection strings are stored AES-256 encrypted at rest; never exposed through the API.
+- **Query Engine** — a dedicated `query-engine` module proxies SQL execution against user datasources and returns typed `{ columns, rows }` payloads.
+- **Execution Audit Log** — every SQL run is recorded in the `executions` table (query, user, duration, row count, status).
+- **Public dashboard sharing** — dashboards can be toggled public and accessed via a unique `shareToken` without authentication.
+
+---
+
+## 🗄️ Data Model
+
+```
+Organization ──< Membership >── User
+     │
+     ├──< Datasource
+     │
+     ├──< Query ──────────────────< Execution
+     │       └──< Widget
+     │
+     └──< Dashboard ──< Widget
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 20 or newer
-- npm
-- [Docker](https://docs.docker.com/get-docker/) with Docker Compose
+- **Node.js** ≥ 20
+- **Docker** & Docker Compose (for the local PostgreSQL instance)
+- **npm** ≥ 10
 
 ### 1. Clone the repository
 
@@ -53,147 +116,160 @@ git clone https://github.com/setohe0909/metric-flow.git
 cd metric-flow
 ```
 
-### 2. Start PostgreSQL
+### 2. Start the database
 
 ```bash
-docker compose up -d postgres
+docker compose up -d
 ```
 
-The development database is exposed at `localhost:5432` with the credentials defined in `docker-compose.yml`.
+This starts a PostgreSQL 15 instance on port **5432** with database `metricflow`.
 
-### 3. Configure and start the API
+### 3. Configure the backend
 
 ```bash
 cd backend
-npm install
+cp .env.example .env
 ```
 
-Create `backend/.env` with these values:
+Edit `backend/.env` — minimum required variables:
 
-```dotenv
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/metricflow?schema=public"
-JWT_SECRET="replace-with-a-long-random-secret"
-ENCRYPTION_KEY="replace-with-a-stable-32-byte-secret"
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/metricflow"
+JWT_SECRET="your-super-secret-jwt-key"
+ENCRYPTION_KEY="32-char-hex-key-for-aes-256"
 PORT=3000
 ```
 
-Apply the checked-in migrations and start the API:
+### 4. Install & migrate
 
 ```bash
+# Inside backend/
+npm install
 npx prisma migrate deploy
-npm run start:dev
+npx prisma generate
 ```
 
-The API starts at `http://localhost:3000/api`.
-
-> [!WARNING]
-> Keep `ENCRYPTION_KEY` stable. Changing it prevents MetricFlow from decrypting previously saved datasource credentials.
-
-### 4. Start the web app
-
-In a second terminal:
+### 5. Start the backend
 
 ```bash
-cd frontend
+npm run start:dev
+# API available at http://localhost:3000
+```
+
+### 6. Start the frontend
+
+```bash
+cd ../frontend
 npm install
 npm run dev
+# App available at http://localhost:5173
 ```
-
-Open the URL printed by Vite, normally `http://localhost:5173`.
-
-To point the frontend at another API, create `frontend/.env.local`:
-
-```dotenv
-VITE_API_URL="http://localhost:3000/api"
-```
-
-## Architecture
-
-```mermaid
-flowchart LR
-    UI["React + Vite web app"] -->|"REST / JWT"| API["NestJS API"]
-    API --> META["PostgreSQL metadata store"]
-    API --> ENGINE["Query engine"]
-    ENGINE --> PG["PostgreSQL"]
-    ENGINE --> MYSQL["MySQL"]
-    ENGINE --> SQLITE["SQLite"]
-    ENGINE --> CSV["CSV imports"]
-```
-
-MetricFlow keeps application metadata in PostgreSQL. The backend validates tenant context, decrypts datasource settings only when required, executes queries through the appropriate driver, and returns results to the React client.
-
-## Technology stack
-
-### Frontend
-
-- React 19, TypeScript, and Vite
-- Tailwind CSS 4
-- TanStack Query and Zustand
-- Monaco Editor
-- Recharts and React Grid Layout
-
-### Backend
-
-- NestJS 11 and TypeScript
-- Prisma ORM and PostgreSQL
-- Passport JWT and bcrypt
-- PostgreSQL, MySQL, and SQLite drivers
-- Jest and Supertest
-
-## Repository structure
-
-```text
-metric-flow/
-├── backend/              # NestJS API, Prisma schema, and migrations
-├── frontend/             # React application and product UI
-├── docs/assets/          # Project branding used by documentation
-├── docker-compose.yml    # Local PostgreSQL service
-└── README.md
-```
-
-## Development commands
-
-| Area | Command | Purpose |
-| --- | --- | --- |
-| Frontend | `npm run dev` | Start the Vite development server. |
-| Frontend | `npm run build` | Type-check and create a production build. |
-| Frontend | `npm run lint` | Run ESLint. |
-| Backend | `npm run start:dev` | Start NestJS in watch mode. |
-| Backend | `npm run build` | Compile the API. |
-| Backend | `npm test` | Run unit tests. |
-| Backend | `npm run test:e2e` | Run end-to-end tests. |
-| Backend | `npm run test:cov` | Generate a coverage report. |
-
-Run frontend commands from `frontend/` and backend commands from `backend/`.
-
-## Roadmap
-
-- [x] Authentication and organization workspaces
-- [x] Datasource connection management and CSV imports
-- [x] SQL editor with schema exploration
-- [x] Dashboard and widget builders
-- [x] Public dashboard sharing
-- [ ] Automated CI checks and release builds
-- [ ] Expanded automated test coverage
-- [ ] Deployment and operations guide
-
-## Contributing
-
-Contributions and constructive feedback are welcome while MetricFlow evolves:
-
-1. Fork the repository and create a focused branch.
-2. Keep changes scoped and include tests when behavior changes.
-3. Run the relevant lint, build, and test commands.
-4. Open a pull request that explains the problem and the chosen approach.
-
-For security-sensitive reports, do not open a public issue. Contact the repository maintainer privately through their GitHub profile.
-
-## License
-
-MetricFlow is open-source software licensed under the [MIT License](LICENSE.md).
 
 ---
 
-<div align="center">
-  Built to make the path from query to insight feel effortless.
-</div>
+## 📁 Project Structure
+
+```
+metric-flow/
+├── backend/                  # NestJS API
+│   ├── src/
+│   │   ├── auth/             # JWT auth, login, register
+│   │   ├── organizations/    # Org management & membership
+│   │   ├── datasource/       # Datasource CRUD + connection test
+│   │   ├── query-engine/     # Proxy SQL execution against user DBs
+│   │   ├── queries/          # Saved query library
+│   │   ├── dashboard/        # Dashboard CRUD + public sharing
+│   │   ├── widget/           # Widget CRUD + layout persistence
+│   │   └── common/           # Guards, decorators, pipes
+│   └── prisma/
+│       └── schema.prisma     # Full data model
+│
+├── frontend/                 # React 19 + Vite SPA
+│   └── src/
+│       ├── features/         # Feature modules (auth, dashboards, widgets…)
+│       ├── pages/            # Route-level page components
+│       ├── components/       # Shared UI components
+│       ├── layouts/          # App shell & nav layout
+│       └── store/            # Zustand global stores
+│
+├── docker-compose.yml        # Local PostgreSQL service
+└── docs/
+    └── logo.png
+```
+
+---
+
+## 🧪 Running Tests
+
+### Backend
+
+```bash
+cd backend
+npm run lint          # ESLint
+npm run build         # TypeScript build check
+npm test              # Unit tests (Jest)
+npm run test:e2e      # End-to-end tests
+npm run test:cov      # Coverage report
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm run lint          # ESLint
+npm run build         # Vite production build
+```
+
+---
+
+## 🔒 Security Notes
+
+- Datasource passwords and connection strings are **AES-256 encrypted** before being stored in PostgreSQL.
+- JWT tokens are signed with a secret configured via `JWT_SECRET`. Use a strong random value in production.
+- The `viewer` role is **read-only** — viewers cannot create or modify queries, datasources, or dashboards.
+- Public dashboard share tokens are UUID-based and revocable by the dashboard owner.
+- Never commit your `.env` file. It is listed in `.gitignore` by default.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feat/my-feature`
+3. Commit your changes following [Conventional Commits](https://www.conventionalcommits.org/): `git commit -m "feat: add X"`
+4. Push to your fork: `git push origin feat/my-feature`
+5. Open a Pull Request — describe what changed and why
+
+Please read [`AGENTS.md`](./backend/AGENTS.md) for our working agreements and validation checklist before submitting a PR.
+
+### Reporting Bugs
+
+Open an [issue](https://github.com/setohe0909/metric-flow/issues) with:
+- Steps to reproduce
+- Expected vs actual behavior
+- MetricFlow version and OS
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] Role-based column/row filtering per datasource
+- [ ] Scheduled query execution & email delivery
+- [ ] Dashboard embed via `<iframe>` snippet
+- [ ] BigQuery and Snowflake drivers
+- [ ] SAML / SSO integration
+- [ ] Dark mode toggle in the UI
+
+---
+
+## 📄 License
+
+MetricFlow is released under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  Built with ☕ and SQL by the MetricFlow team.
+</p>
