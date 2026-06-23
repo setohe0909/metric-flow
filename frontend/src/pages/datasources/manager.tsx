@@ -27,7 +27,7 @@ export default function DatasourceManager() {
   const [expandedPolicyId, setExpandedPolicyId] = useState<string | null>(null);
 
   const [showForm, setShowForm] = useState(false);
-  const [dbType, setDbType] = useState<'postgres' | 'mysql' | 'sqlite' | 'csv'>('postgres');
+  const [dbType, setDbType] = useState<'postgres' | 'mysql' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake'>('postgres');
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState(5432);
@@ -36,6 +36,15 @@ export default function DatasourceManager() {
   const [database, setDatabase] = useState('');
   const [ssl, setSsl] = useState(false);
   const [filePath, setFilePath] = useState('');
+  
+  // BigQuery specific fields
+  const [projectId, setProjectId] = useState('');
+  const [serviceAccountJson, setServiceAccountJson] = useState('');
+
+  // Snowflake specific fields
+  const [account, setAccount] = useState('');
+  const [warehouse, setWarehouse] = useState('');
+  const [schema, setSchema] = useState('');
   
   // Estados para subida de archivos
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -60,9 +69,14 @@ export default function DatasourceManager() {
     setIsDragging(false);
     setTestResult(null);
     setErrorMessage(null);
+    setProjectId('');
+    setServiceAccountJson('');
+    setAccount('');
+    setWarehouse('');
+    setSchema('');
   };
 
-  const handleDbTypeChange = (type: 'postgres' | 'mysql' | 'sqlite' | 'csv') => {
+  const handleDbTypeChange = (type: 'postgres' | 'mysql' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake') => {
     setDbType(type);
     setTestResult(null);
     setSelectedFile(null);
@@ -73,6 +87,23 @@ export default function DatasourceManager() {
   const buildConnectionSettings = () => {
     if (dbType === 'sqlite' || dbType === 'csv') {
       return { filePath };
+    }
+    if (dbType === 'bigquery') {
+      return {
+        projectId,
+        serviceAccountJson,
+        database,
+      };
+    }
+    if (dbType === 'snowflake') {
+      return {
+        account,
+        username,
+        password,
+        database,
+        warehouse,
+        schema: schema || 'PUBLIC',
+      };
     }
     return {
       host,
@@ -242,8 +273,8 @@ export default function DatasourceManager() {
               <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
                 Tipo de Base de Datos
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {(['postgres', 'mysql', 'sqlite', 'csv'] as const).map((type) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {(['postgres', 'mysql', 'sqlite', 'csv', 'bigquery', 'snowflake'] as const).map((type) => (
                   <button
                     key={type}
                     type="button"
@@ -256,7 +287,7 @@ export default function DatasourceManager() {
                   >
                     <Database className="h-5 w-5" />
                     <span className="capitalize">
-                      {type === 'postgres' ? 'PostgreSQL' : type === 'mysql' ? 'MySQL' : type === 'sqlite' ? 'SQLite' : 'CSV'}
+                      {type === 'postgres' ? 'PostgreSQL' : type === 'mysql' ? 'MySQL' : type === 'sqlite' ? 'SQLite' : type === 'csv' ? 'CSV' : type === 'bigquery' ? 'BigQuery' : 'Snowflake'}
                     </span>
                   </button>
                 ))}
@@ -346,6 +377,141 @@ export default function DatasourceManager() {
                   )}
                 </div>
               </div>
+            ) : dbType === 'bigquery' ? (
+              /* Campos para BigQuery */
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      ID del Proyecto GCP
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={projectId}
+                      onChange={(e) => setProjectId(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="my-gcp-project"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Dataset (Base de Datos)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={database}
+                      onChange={(e) => setDatabase(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="my_dataset"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    Service Account Key JSON
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={serviceAccountJson}
+                    onChange={(e) => setServiceAccountJson(e.target.value)}
+                    className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                    placeholder='{ "type": "service_account", "project_id": ... }'
+                  />
+                </div>
+              </>
+            ) : dbType === 'snowflake' ? (
+              /* Campos para Snowflake */
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Identificador de Cuenta
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={account}
+                      onChange={(e) => setAccount(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="xy12345.us-east-2.aws"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Warehouse (Almacén)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={warehouse}
+                      onChange={(e) => setWarehouse(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="COMPUTE_WH"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Usuario
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="usuario"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Base de Datos
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={database}
+                      onChange={(e) => setDatabase(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="MY_DATABASE"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Esquema (Schema)
+                    </label>
+                    <input
+                      type="text"
+                      value={schema}
+                      onChange={(e) => setSchema(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="PUBLIC (opcional)"
+                    />
+                  </div>
+                </div>
+              </>
             ) : (
               /* Campos para bases de datos relacionales (Postgres / MySQL) */
               <>
@@ -473,7 +639,14 @@ export default function DatasourceManager() {
                 <button
                   type="button"
                   onClick={handleTest}
-                  disabled={isTesting || !host || !username || !password || !database}
+                  disabled={
+                    isTesting ||
+                    (dbType === 'bigquery'
+                      ? !projectId || !serviceAccountJson || !database
+                      : dbType === 'snowflake'
+                      ? !account || !username || !password || !database || !warehouse
+                      : !host || !username || !password || !database)
+                  }
                   className="flex items-center gap-1.5 btn-retro-secondary disabled:opacity-50"
                 >
                   {isTesting ? (

@@ -21,6 +21,8 @@ import {
   Check,
   Save,
   X,
+  Code2,
+  Link as LinkIcon,
 } from 'lucide-react';
 import ReactGridLayout, { WidthProvider } from 'react-grid-layout/legacy';
 
@@ -44,7 +46,11 @@ export default function DashboardDetail() {
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [localLayouts, setLocalLayouts] = useState<any[]>([]);
   const [showSharePanel, setShowSharePanel] = useState(false);
+  const [shareTab, setShareTab] = useState<'link' | 'embed'>('link');
   const [copied, setCopied] = useState(false);
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
+  const [iframeWidth, setIframeWidth] = useState('100%');
+  const [iframeHeight, setIframeHeight] = useState('600');
 
   const isViewer = activeOrg?.role === 'viewer';
 
@@ -144,6 +150,14 @@ export default function DashboardDetail() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyEmbed = () => {
+    const src = `${window.location.origin}/shared/dashboard/${dashboard.shareToken}`;
+    const snippet = `<iframe\n  src="${src}"\n  width="${iframeWidth}"\n  height="${iframeHeight}"\n  frameborder="0"\n  allowfullscreen\n></iframe>`;
+    navigator.clipboard.writeText(snippet);
+    setCopiedEmbed(true);
+    setTimeout(() => setCopiedEmbed(false), 2000);
+  };
+
   const handleLayoutChange = (newLayout: any) => {
     if (isEditingLayout) {
       setLocalLayouts(newLayout);
@@ -230,6 +244,7 @@ export default function DashboardDetail() {
       {/* Share Panel */}
       {showSharePanel && (
         <div className="bg-[#eeefe9] border-2 border-[#23251d] rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 shadow-[4px_4px_0px_0px_#23251d]">
+          {/* Header row: title + toggle */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
               <h3 className="text-sm font-extrabold text-[#23251d] font-mono">Compartir Dashboard Públicamente</h3>
@@ -258,32 +273,112 @@ export default function DashboardDetail() {
           </div>
 
           {dashboard.isPublic && dashboard.shareToken && (
-            <div className="space-y-2 pt-3 border-t-2 border-[#23251d]/10">
-              <label className="text-[11px] font-bold text-[#4d4f46] uppercase tracking-wider font-mono">
-                Enlace Público Compartido
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={`${window.location.origin}/shared/dashboard/${dashboard.shareToken}`}
-                  className="flex-1 bg-white border-2 border-[#23251d] rounded-xl px-3 py-2 text-xs text-[#23251d] focus:outline-none focus:border-[#f7a501] transition-all font-mono shadow-[2px_2px_0px_0px_#23251d]"
-                />
+            <div className="space-y-3 pt-3 border-t-2 border-[#23251d]/10">
+              {/* Tab selector: Link vs Embed */}
+              <div className="flex border-2 border-[#23251d] rounded-xl overflow-hidden shadow-[2px_2px_0px_0px_#23251d] w-fit font-mono text-xs font-bold">
                 <button
-                  onClick={handleCopyLink}
-                  className="btn-retro-secondary text-xs"
+                  onClick={() => setShareTab('link')}
+                  className={`flex items-center gap-1.5 px-4 py-2 border-r-2 border-[#23251d] transition-colors ${
+                    shareTab === 'link' ? 'bg-[#f7a501] text-[#23251d]' : 'bg-white text-[#4d4f46] hover:bg-[#f4f4f0]'
+                  }`}
                 >
-                  {copied ? (
-                    <>
-                      <Check className="h-3.5 w-3.5 text-green-600" /> Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5 text-[#23251d]" /> Copiar Enlace
-                    </>
-                  )}
+                  <LinkIcon className="h-3.5 w-3.5" /> Enlace
+                </button>
+                <button
+                  onClick={() => setShareTab('embed')}
+                  className={`flex items-center gap-1.5 px-4 py-2 transition-colors ${
+                    shareTab === 'embed' ? 'bg-[#f7a501] text-[#23251d]' : 'bg-white text-[#4d4f46] hover:bg-[#f4f4f0]'
+                  }`}
+                >
+                  <Code2 className="h-3.5 w-3.5" /> Embed
                 </button>
               </div>
+
+              {shareTab === 'link' && (
+                <div className="space-y-2">
+                  <label className="text-[11px] font-bold text-[#4d4f46] uppercase tracking-wider font-mono">
+                    Enlace Público Compartido
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={`${window.location.origin}/shared/dashboard/${dashboard.shareToken}`}
+                      className="flex-1 bg-white border-2 border-[#23251d] rounded-xl px-3 py-2 text-xs text-[#23251d] focus:outline-none focus:border-[#f7a501] transition-all font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                    />
+                    <button onClick={handleCopyLink} className="btn-retro-secondary text-xs">
+                      {copied ? (
+                        <><Check className="h-3.5 w-3.5 text-green-600" /> Copiado</>
+                      ) : (
+                        <><Copy className="h-3.5 w-3.5 text-[#23251d]" /> Copiar Enlace</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {shareTab === 'embed' && (
+                <div className="space-y-3">
+                  <label className="text-[11px] font-bold text-[#4d4f46] uppercase tracking-wider font-mono">
+                    Código de Integración (iframe)
+                  </label>
+
+                  {/* Dimensiones */}
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className="block text-[10px] font-bold font-mono text-[#4d4f46] mb-1">Ancho</label>
+                      <input
+                        type="text"
+                        value={iframeWidth}
+                        onChange={(e) => setIframeWidth(e.target.value)}
+                        className="w-full px-3 py-1.5 border-2 border-[#23251d] rounded-lg bg-white text-xs font-mono text-[#23251d] focus:outline-none shadow-[1px_1px_0px_0px_#23251d]"
+                        placeholder="100% o 800px"
+                      />
+                    </div>
+                    <div className="w-28">
+                      <label className="block text-[10px] font-bold font-mono text-[#4d4f46] mb-1">Alto (px)</label>
+                      <input
+                        type="text"
+                        value={iframeHeight}
+                        onChange={(e) => setIframeHeight(e.target.value)}
+                        className="w-full px-3 py-1.5 border-2 border-[#23251d] rounded-lg bg-white text-xs font-mono text-[#23251d] focus:outline-none shadow-[1px_1px_0px_0px_#23251d]"
+                        placeholder="600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Snippet preview */}
+                  <div
+                    className="border-2 border-[#23251d] rounded-xl overflow-hidden"
+                    style={{ boxShadow: '2px 2px 0px 0px #23251d' }}
+                  >
+                    {/* Fake code editor titlebar */}
+                    <div className="bg-[#23251d] px-4 py-2 flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-red-500 opacity-70" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 opacity-70" />
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500 opacity-70" />
+                      <span className="text-[10px] font-mono text-slate-400 ml-2">embed.html</span>
+                    </div>
+                    <pre
+                      className="bg-[#1e1f1a] text-[#e8e9e3] text-[11px] font-mono p-4 overflow-x-auto leading-relaxed whitespace-pre"
+                    >{`<iframe
+  src="${window.location.origin}/shared/dashboard/${dashboard.shareToken}"
+  width="${iframeWidth}"
+  height="${iframeHeight}"
+  frameborder="0"
+  allowfullscreen
+></iframe>`}</pre>
+                  </div>
+
+                  <button onClick={handleCopyEmbed} className="btn-retro-primary text-xs">
+                    {copiedEmbed ? (
+                      <><Check className="h-3.5 w-3.5 text-[#23251d]" /> Copiado!</>
+                    ) : (
+                      <><Copy className="h-3.5 w-3.5 text-[#23251d]" /> Copiar código embed</>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

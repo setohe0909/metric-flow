@@ -4,7 +4,7 @@ import { apiClient } from '@/lib/api-client';
 export interface Datasource {
   id: string;
   name: string;
-  type: 'postgres' | 'mysql' | 'sqlite' | 'csv';
+  type: 'postgres' | 'mysql' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake';
   connectionSettings: {
     host?: string;
     port?: number;
@@ -12,6 +12,11 @@ export interface Datasource {
     database?: string;
     ssl?: boolean;
     filePath?: string;
+    projectId?: string;
+    serviceAccountJson?: string;
+    account?: string;
+    warehouse?: string;
+    schema?: string;
   };
   createdAt: string;
 }

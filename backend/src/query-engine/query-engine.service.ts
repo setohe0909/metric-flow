@@ -10,6 +10,8 @@ import * as mysql from 'mysql2/promise';
 import * as sqlite3 from 'sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
+import { BigQuery } from '@google-cloud/bigquery';
+import * as snowflake from 'snowflake-sdk';
 
 interface QueryResult {
   columns: string[];
@@ -134,6 +136,31 @@ export class QueryEngineService implements OnModuleDestroy {
       }
 
       return schema;
+    } else if (type === 'bigquery') {
+      const sql = `
+        SELECT table_name AS tableName, column_name AS columnName
+        FROM \`${settings.projectId}.${settings.database}.INFORMATION_SCHEMA.COLUMNS\`
+        ORDER BY table_name, ordinal_position;
+      `;
+      try {
+        const result = await this.runBigQueryQuery(settings, sql);
+        return this.formatSchemaResult(result.rows);
+      } catch {
+        return [];
+      }
+    } else if (type === 'snowflake') {
+      const sql = `
+        SELECT TABLE_NAME AS "tableName", COLUMN_NAME AS "columnName"
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = '${(settings.schema ?? 'PUBLIC').toUpperCase()}'
+        ORDER BY TABLE_NAME, ORDINAL_POSITION;
+      `;
+      try {
+        const result = await this.runSnowflakeQuery(settings, sql);
+        return this.formatSchemaResult(result.rows);
+      } catch {
+        return [];
+      }
     }
     return [];
   }
@@ -175,6 +202,10 @@ export class QueryEngineService implements OnModuleDestroy {
       case 'csv':
         // Tanto SQLite como CSV (que se importa como SQLite) corren sobre SQLite
         return this.runSqliteQuery(settings, sql, orgId);
+      case 'bigquery':
+        return this.runBigQueryQuery(settings, sql);
+      case 'snowflake':
+        return this.runSnowflakeQuery(settings, sql);
       default:
         throw new BadRequestException('Tipo de base de datos no soportado');
     }
@@ -355,7 +386,104 @@ export class QueryEngineService implements OnModuleDestroy {
     });
   }
 
+  // --- BIGQUERY ENGINE ---
+  private async runBigQueryQuery(
+    settings: ConnectionSettingsDto,
+    sql: string,
+  ): Promise<QueryResult> {
+    if (!settings.projectId || !settings.serviceAccountJson) {
+      throw new BadRequestException(
+        'BigQuery requiere projectId y serviceAccountJson.',
+      );
+    }
+
+    let credentials: Record<string, any>;
+    try {
+      credentials = JSON.parse(settings.serviceAccountJson);
+    } catch {
+      throw new BadRequestException(
+        'serviceAccountJson no es un JSON válido.',
+      );
+    }
+
+    const bq = new BigQuery({ projectId: settings.projectId, credentials });
+
+    try {
+      const [job] = await bq.createQueryJob({ query: sql, useLegacySql: false });
+      const [rows] = await job.getQueryResults();
+
+      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+      return {
+        columns,
+        rows,
+        rowCount: rows.length,
+      };
+    } catch (error) {
+      throw new BadRequestException(`BigQuery Error: ${error.message}`);
+    }
+  }
+
+  // --- SNOWFLAKE ENGINE ---
+  private async runSnowflakeQuery(
+    settings: ConnectionSettingsDto,
+    sql: string,
+  ): Promise<QueryResult> {
+    if (!settings.account || !settings.username || !settings.password) {
+      throw new BadRequestException(
+        'Snowflake requiere account, username y password.',
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      const connection = snowflake.createConnection({
+        account: settings.account!,
+        username: settings.username!,
+        password: settings.password!,
+        database: settings.database,
+        warehouse: settings.warehouse,
+        schema: settings.schema ?? 'PUBLIC',
+      });
+
+      connection.connect((err, conn) => {
+        if (err) {
+          return reject(
+            new BadRequestException(`Snowflake Connection Error: ${err.message}`),
+          );
+        }
+
+        conn.execute({
+          sqlText: sql,
+          complete: (execErr, _stmt, rows) => {
+            // Destroy the connection regardless of outcome
+            conn.destroy((destroyErr) => {
+              if (destroyErr) {
+                console.error('Snowflake destroy error:', destroyErr);
+              }
+            });
+
+            if (execErr) {
+              return reject(
+                new BadRequestException(`Snowflake SQL Error: ${execErr.message}`),
+              );
+            }
+
+            const safeRows = rows ?? [];
+            const columns = safeRows.length > 0 ? Object.keys(safeRows[0]) : [];
+
+            resolve({
+              columns,
+              rows: safeRows,
+              rowCount: safeRows.length,
+            });
+          },
+        });
+      });
+    });
+  }
+
   // --- UTILS & SAFETY ---
+
   private applySafetyLimits(sql: string): string {
     const trimmedSql = sql.trim();
     // Expresión regular para buscar SELECT

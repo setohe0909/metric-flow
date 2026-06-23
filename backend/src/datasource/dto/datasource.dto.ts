@@ -40,6 +40,28 @@ export class ConnectionSettingsDto {
   @IsOptional()
   @IsString()
   filePath?: string; // Para SQLite y CSV
+
+  // --- BigQuery ---
+  @IsOptional()
+  @IsString()
+  projectId?: string; // GCP project ID
+
+  @IsOptional()
+  @IsString()
+  serviceAccountJson?: string; // JSON serializado de la service account key
+
+  // --- Snowflake ---
+  @IsOptional()
+  @IsString()
+  account?: string; // ej. "myorg-myaccount"
+
+  @IsOptional()
+  @IsString()
+  warehouse?: string; // ej. "COMPUTE_WH"
+
+  @IsOptional()
+  @IsString()
+  schema?: string; // ej. "PUBLIC"
 }
 
 export class CreateDatasourceDto {
@@ -47,7 +69,7 @@ export class CreateDatasourceDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   name: string;
 
-  @IsEnum(['postgres', 'mysql', 'sqlite', 'csv'], {
+  @IsEnum(['postgres', 'mysql', 'sqlite', 'csv', 'bigquery', 'snowflake'], {
     message: 'Tipo de base de datos no soportado',
   })
   type: string;
@@ -58,6 +80,7 @@ export class CreateDatasourceDto {
   @Type(() => ConnectionSettingsDto)
   connectionSettings: ConnectionSettingsDto;
 }
+
 
 /** Política de acceso para un rol específico (admin o viewer) */
 export class RolePolicyDto {
