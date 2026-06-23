@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useDatasources } from '@/features/datasources/hooks/use-datasources';
 import type { Datasource } from '@/features/datasources/hooks/use-datasources';
+import { PolicyEditor } from '@/features/datasources/components/policy-editor';
+import { useAuth } from '@/features/auth/hooks/use-auth';
 import { SpotlightCard } from '@/components/spotlight-card';
 import { Database, Plus, Trash2, Shield, Play, Save, CheckCircle2, AlertCircle, Loader2, UploadCloud, File, X, Info } from 'lucide-react';
 
@@ -16,6 +18,13 @@ export default function DatasourceManager() {
     uploadFile,
     isUploading,
   } = useDatasources();
+
+  const { activeOrg } = useAuth();
+  const userRole = (activeOrg as any)?.role ?? 'viewer';
+  const isOwner = userRole === 'owner';
+
+  // ID del datasource cuyo PolicyEditor está abierto (null = ninguno)
+  const [expandedPolicyId, setExpandedPolicyId] = useState<string | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [dbType, setDbType] = useState<'postgres' | 'mysql' | 'sqlite' | 'csv'>('postgres');
@@ -518,55 +527,98 @@ export default function DatasourceManager() {
             </div>
           ) : (
             datasources.map((ds: Datasource) => (
-              <SpotlightCard
-                key={ds.id}
-                className="min-h-[140px] hover:border-[#f7a501] !p-0"
-              >
-                {/* Retro OS Header Bar */}
-                <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3">
-                  <div className="flex gap-1.5 shrink-0">
-                    <div className="w-3 h-3 rounded-full window-circle-red" />
-                    <div className="w-3 h-3 rounded-full window-circle-yellow" />
-                    <div className="w-3 h-3 rounded-full window-circle-green" />
+              <div key={ds.id} className="flex flex-col gap-3">
+                <SpotlightCard
+                  className="min-h-[140px] hover:border-[#f7a501] !p-0"
+                >
+                  {/* Retro OS Header Bar */}
+                  <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3">
+                    <div className="flex gap-1.5 shrink-0">
+                      <div className="w-3 h-3 rounded-full window-circle-red" />
+                      <div className="w-3 h-3 rounded-full window-circle-yellow" />
+                      <div className="w-3 h-3 rounded-full window-circle-green" />
+                    </div>
+                    <span className="text-xs font-bold text-[#23251d] truncate font-mono flex-1 text-center">
+                      {ds.name}.db
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (confirm(`¿Estás seguro de eliminar el conector "${ds.name}"?`)) {
+                          deleteDatasource(ds.id);
+                        }
+                      }}
+                      className="text-[#4d4f46] hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg border-2 border-transparent hover:border-[#23251d] transition-all"
+                      title="Eliminar conector"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <span className="text-xs font-bold text-[#23251d] truncate font-mono flex-1 text-center">
-                    {ds.name}.db
-                  </span>
-                  <button
-                    onClick={() => {
-                      if (confirm(`¿Estás seguro de eliminar el conector "${ds.name}"?`)) {
-                        deleteDatasource(ds.id);
-                      }
-                    }}
-                    className="text-[#4d4f46] hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg border-2 border-transparent hover:border-[#23251d] transition-all"
-                    title="Eliminar conector"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
 
-                {/* Card Body */}
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-base font-extrabold text-[#23251d] font-mono truncate">{ds.name}</h3>
-                    <p className="text-xs text-[#4d4f46] capitalize mt-2 flex flex-wrap items-center gap-1.5 font-mono">
-                      <span className="px-2 py-0.5 bg-[#f4f4f0] border-2 border-[#23251d] rounded font-bold text-[10px] text-[#23251d] uppercase">
-                        {ds.type}
-                      </span>
-                      {ds.connectionSettings.host && (
-                        <span className="bg-white px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold text-[#23251d]">
-                          {ds.connectionSettings.host}
+                  {/* Card Body */}
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-base font-extrabold text-[#23251d] font-mono truncate">{ds.name}</h3>
+                      <p className="text-xs text-[#4d4f46] capitalize mt-2 flex flex-wrap items-center gap-1.5 font-mono">
+                        <span className="px-2 py-0.5 bg-[#f4f4f0] border-2 border-[#23251d] rounded font-bold text-[10px] text-[#23251d] uppercase">
+                          {ds.type}
                         </span>
-                      )}
-                      {ds.connectionSettings.database && (
-                        <span className="bg-white px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold text-[#23251d]">
-                          DB: {ds.connectionSettings.database}
-                        </span>
-                      )}
-                    </p>
+                        {(ds as any).connectionSettings?.host && (
+                          <span className="bg-white px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold text-[#23251d]">
+                            {(ds as any).connectionSettings.host}
+                          </span>
+                        )}
+                        {(ds as any).connectionSettings?.database && (
+                          <span className="bg-white px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold text-[#23251d]">
+                            DB: {(ds as any).connectionSettings.database}
+                          </span>
+                        )}
+                        {/* Badge de políticas activas */}
+                        {(ds as any).hasPolicies && (
+                          <span
+                            className="flex items-center gap-1 px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold font-mono"
+                            style={{ backgroundColor: '#f7a501', color: '#23251d' }}
+                          >
+                            <Shield className="h-2.5 w-2.5" />
+                            Políticas activas
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Botón de políticas — solo para owner */}
+                    {isOwner && (
+                      <div className="mt-4 pt-4 border-t-2 border-[#23251d]/10">
+                        <button
+                          onClick={() =>
+                            setExpandedPolicyId(
+                              expandedPolicyId === ds.id ? null : ds.id,
+                            )
+                          }
+                          className="flex items-center gap-1.5 text-[10px] font-bold font-mono px-3 py-1.5 border-2 border-[#23251d] rounded-lg transition-all"
+                          style={{
+                            backgroundColor: expandedPolicyId === ds.id ? '#f7a501' : 'transparent',
+                            color: '#23251d',
+                            boxShadow: '2px 2px 0px 0px #23251d',
+                          }}
+                        >
+                          <Shield className="h-3 w-3" />
+                          {expandedPolicyId === ds.id ? 'Cerrar políticas' : 'Configurar acceso'}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </SpotlightCard>
+                </SpotlightCard>
+
+                {/* PolicyEditor — desplegable bajo la card */}
+                {isOwner && expandedPolicyId === ds.id && (
+                  <PolicyEditor
+                    datasourceId={ds.id}
+                    datasourceName={ds.name}
+                    initialPolicies={(ds as any).accessPolicies ?? null}
+                    onClose={() => setExpandedPolicyId(null)}
+                  />
+                )}
+              </div>
             ))
           )}
         </div>

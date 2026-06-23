@@ -7,7 +7,7 @@ import { useDashboards } from '@/features/dashboards/hooks/use-dashboards';
 import type { QueryRunResponse } from '@/features/queries/hooks/use-queries';
 import { ResultsTable } from '@/features/queries/components/results-table';
 import { apiClient } from '@/lib/api-client';
-import { Play, Save, Loader2, AlertTriangle, CheckCircle, Database, Terminal, Clock, Rows, Trash2, Sliders, X, FileText } from 'lucide-react';
+import { Play, Save, Loader2, AlertTriangle, CheckCircle, Database, Terminal, Clock, Rows, Trash2, Sliders, X, FileText, EyeOff } from 'lucide-react';
 
 export default function QueryEditor() {
   const navigate = useNavigate();
@@ -512,7 +512,43 @@ export default function QueryEditor() {
               )}
 
               {!isRunning && !executionError && queryResult && (
-                <ResultsTable columns={queryResult.columns} rows={queryResult.rows} />
+                <div className="space-y-3">
+                  {/* Banner: datos filtrados por política de rol */}
+                  {(queryResult as any).filtered && (
+                    <div
+                      className="flex items-start gap-3 px-4 py-3 border-2 border-[#23251d] rounded-xl text-xs font-mono"
+                      style={{ backgroundColor: '#fff8e6', boxShadow: '2px 2px 0px 0px #f7a501' }}
+                    >
+                      <EyeOff className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: '#f7a501' }} />
+                      <div className="space-y-1">
+                        <p className="font-extrabold" style={{ color: '#23251d' }}>
+                          Estás viendo datos filtrados según tu rol en esta organización.
+                        </p>
+                        <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: '#4d4f46' }}>
+                          {(queryResult as any).appliedPolicy?.rowFilter && (
+                            <span>
+                              Filtro de filas:{' '}
+                              <code
+                                className="px-1.5 py-0.5 rounded border border-[#23251d]"
+                                style={{ backgroundColor: 'white' }}
+                              >
+                                {(queryResult as any).appliedPolicy.rowFilter}
+                              </code>
+                            </span>
+                          )}
+                          {(queryResult as any).appliedPolicy?.allowedColumns && (
+                            <span>
+                              Columnas visibles:{' '}
+                              <strong>{(queryResult as any).appliedPolicy.allowedColumns.length}</strong>{' '}
+                              de las disponibles
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <ResultsTable columns={queryResult.columns} rows={queryResult.rows} />
+                </div>
               )}
 
               {!isRunning && !executionError && !queryResult && (
