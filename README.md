@@ -29,11 +29,12 @@
 
 **MetricFlow** is a self-hosted, open-source business intelligence platform that lets you:
 
-- 🔌 **Connect** to PostgreSQL, MySQL, SQLite, or upload CSV files
+- 🔌 **Connect** to PostgreSQL, MySQL, SQLite, Google BigQuery, Snowflake, or upload CSV files
 - 🧠 **Write SQL** in a rich Monaco editor with live query execution
 - 📊 **Build charts** — bar, line, pie, KPI cards, and data tables
 - 🗂️ **Compose dashboards** with drag-and-drop widget layouts
-- 🔗 **Share dashboards** publicly via secure share tokens
+- 🔗 **Share and Embed** dashboards publicly via secure share tokens and customizable `<iframe>` snippets
+- 🛡️ **Granular Access Control** — row-level filters and column-level permission masks per role (admin / viewer)
 - 🏢 **Multi-tenant** — organizations, members, and role-based access (owner / admin / viewer)
 - 🔐 **Secure** — AES-256 encrypted datasource credentials, JWT authentication
 
@@ -51,7 +52,7 @@
 | **ORM** | Prisma 6 |
 | **Database** | PostgreSQL 15 (primary store) |
 | **Auth** | JWT + Passport.js, bcrypt |
-| **Drivers** | `pg`, `mysql2`, `sqlite3`, `csv-parse` |
+| **Drivers** | `pg`, `mysql2`, `sqlite3`, `csv-parse`, `@google-cloud/bigquery`, `snowflake-sdk` |
 | **Infra** | Docker Compose |
 
 ---
@@ -255,10 +256,10 @@ Open an [issue](https://github.com/setohe0909/metric-flow/issues) with:
 
 ## 🗺️ Roadmap
 
-- [ ] Role-based column/row filtering per datasource
+- [x] Role-based column/row filtering per datasource
 - [ ] Scheduled query execution & email delivery
-- [ ] Dashboard embed via `<iframe>` snippet
-- [ ] BigQuery and Snowflake drivers
+- [x] Dashboard embed via `<iframe>` snippet
+- [x] BigQuery and Snowflake drivers
 - [ ] SAML / SSO integration
 - [ ] Dark mode toggle in the UI
 
