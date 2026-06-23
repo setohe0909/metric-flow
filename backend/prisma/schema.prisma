@@ -68,6 +68,7 @@ model Datasource {
   name               String
   type               String // postgres, mysql, sqlite, csv
   connectionSettings String       @map("connection_settings") // AES-256 Encrypted JSON
+  accessPolicies     Json?        @map("access_policies") // { viewer: { allowedColumns, rowFilter }, admin: { ... } }
   createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 

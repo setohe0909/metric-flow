@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { DatasourceService } from './datasource.service';
-import { CreateDatasourceDto, ConnectionSettingsDto } from './dto/datasource.dto';
+import { CreateDatasourceDto, ConnectionSettingsDto, UpdateAccessPoliciesDto } from './dto/datasource.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../auth/guards/tenant.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -79,6 +79,16 @@ export class DatasourceController {
   @Get(':id/schema')
   async getSchema(@Request() req, @Param('id') id: string) {
     return this.datasourceService.getSchema(req.orgId, id);
+  }
+
+  @Put(':id/policies')
+  @HttpCode(HttpStatus.OK)
+  async updatePolicies(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateAccessPoliciesDto,
+  ) {
+    return this.datasourceService.updatePolicies(req.orgId, id, req.userRole, dto);
   }
 
   @Delete(':id')

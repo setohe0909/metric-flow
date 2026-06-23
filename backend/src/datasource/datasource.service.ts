@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../common/encryption/encryption.service';
 import { QueryEngineService } from '../query-engine/query-engine.service';
-import { CreateDatasourceDto, ConnectionSettingsDto } from './dto/datasource.dto';
+import { CreateDatasourceDto, ConnectionSettingsDto, UpdateAccessPoliciesDto } from './dto/datasource.dto';
 import { CsvImporterService } from './csv-importer.service';
+import { AccessPolicies } from './filtering.service';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -68,6 +69,8 @@ export class DatasourceService {
         name: ds.name,
         type: ds.type,
         connectionSettings: settings,
+        accessPolicies: (ds.accessPolicies as AccessPolicies) ?? null,
+        hasPolicies: ds.accessPolicies !== null,
         createdAt: ds.createdAt,
       };
     });
@@ -93,6 +96,7 @@ export class DatasourceService {
       name: ds.name,
       type: ds.type,
       connectionSettings: settings,
+      accessPolicies: (ds.accessPolicies as AccessPolicies) ?? null,
     };
   }
 
@@ -119,10 +123,65 @@ export class DatasourceService {
     }
     
     // Si envían password oculto "••••••••", significa que es una DB existente que no están modificando la password.
-    // En este caso, no podemos probar la conexión directamente a menos que extraigamos la original,
-    // pero este endpoint es para nuevas conexiones o edición activa.
     await this.queryEngine.testConnection(dto.type, dto, orgId);
     return { success: true, message: 'Conexión exitosa' };
+  }
+
+  /**
+   * Actualiza las políticas de acceso por rol de un datasource.
+   * Solo el owner puede modificar las políticas.
+   */
+  async updatePolicies(
+    orgId: string,
+    datasourceId: string,
+    userRole: string,
+    dto: UpdateAccessPoliciesDto,
+  ) {
+    if (userRole !== 'owner') {
+      throw new ForbiddenException('Solo el owner puede configurar políticas de acceso');
+    }
+
+    const ds = await this.prisma.datasource.findFirst({
+      where: { id: datasourceId, organizationId: orgId },
+    });
+
+    if (!ds) {
+      throw new NotFoundException('Conector no encontrado');
+    }
+
+    // Construir el objeto de políticas normalizado
+    const policies: AccessPolicies = {};
+
+    if (dto.viewer !== undefined) {
+      policies.viewer = {
+        allowedColumns: dto.viewer.allowedColumns ?? null,
+        rowFilter: dto.viewer.rowFilter ?? null,
+      };
+    }
+
+    if (dto.admin !== undefined) {
+      policies.admin = {
+        allowedColumns: dto.admin.allowedColumns ?? null,
+        rowFilter: dto.admin.rowFilter ?? null,
+      };
+    }
+
+    // Si el objeto resultante está vacío, limpiar las políticas
+    const finalPolicies = Object.keys(policies).length > 0 ? policies : null;
+
+    const updated = await this.prisma.datasource.update({
+      where: { id: datasourceId },
+      data: { accessPolicies: finalPolicies },
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      accessPolicies: (updated.accessPolicies as AccessPolicies) ?? null,
+      message: finalPolicies
+        ? 'Políticas de acceso actualizadas correctamente'
+        : 'Políticas de acceso eliminadas',
+    };
   }
 
   async uploadFile(orgId: string, file: Express.Multer.File, name: string, type: 'sqlite' | 'csv') {
@@ -163,7 +222,7 @@ export class DatasourceService {
       // Para conectarnos, utilizaremos el archivo central de la organización
       filePath = centralDbName;
 
-      // Buscar si ya existe la conexión SQLite central ("QueryLens Managed DB")
+      // Buscar si ya existe la conexión SQLite central ("MetricFlow Managed DB")
       const existingDs = await this.prisma.datasource.findFirst({
         where: {
           organizationId: orgId,
@@ -201,7 +260,6 @@ export class DatasourceService {
       }
     } else {
       // Para SQLite subido directamente (.sqlite, .db)
-      // Buscamos si ya existe una conexión con este nombre o archivo
       const settings = { filePath };
       const datasource = await this.prisma.datasource.create({
         data: {

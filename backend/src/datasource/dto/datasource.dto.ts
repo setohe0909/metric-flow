@@ -1,4 +1,15 @@
-import { IsString, IsEnum, IsNotEmpty, IsObject, IsOptional, ValidateNested, IsInt, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  ValidateNested,
+  IsInt,
+  IsBoolean,
+  IsArray,
+  ValidateIf,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ConnectionSettingsDto {
@@ -36,7 +47,9 @@ export class CreateDatasourceDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   name: string;
 
-  @IsEnum(['postgres', 'mysql', 'sqlite', 'csv'], { message: 'Tipo de base de datos no soportado' })
+  @IsEnum(['postgres', 'mysql', 'sqlite', 'csv'], {
+    message: 'Tipo de base de datos no soportado',
+  })
   type: string;
 
   @IsObject()
@@ -44,4 +57,40 @@ export class CreateDatasourceDto {
   @ValidateNested()
   @Type(() => ConnectionSettingsDto)
   connectionSettings: ConnectionSettingsDto;
+}
+
+/** Política de acceso para un rol específico (admin o viewer) */
+export class RolePolicyDto {
+  /**
+   * Lista de columnas permitidas para este rol.
+   * null o ausente = sin restricción de columnas.
+   */
+  @IsOptional()
+  @ValidateIf((o) => o.allowedColumns !== null)
+  @IsArray()
+  @IsString({ each: true })
+  allowedColumns?: string[] | null;
+
+  /**
+   * Cláusula WHERE SQL inyectada como sub-query wrapper antes de ejecutar.
+   * Ej: "region = 'LATAM'" o "deleted_at IS NULL".
+   * null o ausente = sin restricción de filas.
+   */
+  @IsOptional()
+  @ValidateIf((o) => o.rowFilter !== null)
+  @IsString()
+  rowFilter?: string | null;
+}
+
+/** DTO para PUT /datasources/:id/policies */
+export class UpdateAccessPoliciesDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RolePolicyDto)
+  viewer?: RolePolicyDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RolePolicyDto)
+  admin?: RolePolicyDto;
 }

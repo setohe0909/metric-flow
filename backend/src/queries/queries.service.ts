@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DatasourceService } from '../datasource/datasource.service';
 import { QueryEngineService } from '../query-engine/query-engine.service';
+import { FilteringService } from '../datasource/filtering.service';
 import { RunQueryDto, SaveQueryDto } from './dto/queries.dto';
 
 @Injectable()
@@ -9,63 +10,86 @@ export class QueriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly datasourceService: DatasourceService,
-    private readonly queryEngine: QueryEngineService
+    private readonly queryEngine: QueryEngineService,
+    private readonly filteringService: FilteringService,
   ) {}
 
-  async runRaw(orgId: string, userId: string, dto: RunQueryDto) {
-    // 1. Obtener conector desencriptado
+  async runRaw(orgId: string, userId: string, userRole: string, dto: RunQueryDto) {
+    // 1. Obtener conector desencriptado (ahora incluye accessPolicies)
     const datasource = await this.datasourceService.findOne(orgId, dto.datasourceId);
+
+    // 2. Resolver política y pre-procesar el SQL con row filter si aplica
+    const { wrappedSql, policy, isFiltered } = this.filteringService.resolveForRole(
+      dto.querySql,
+      datasource.accessPolicies,
+      userRole,
+    );
 
     const startTime = Date.now();
     try {
-      // 2. Ejecutar consulta
-      const result = await this.queryEngine.executeQuery(
+      // 3. Ejecutar el SQL (posiblemente envuelto con WHERE de row filter)
+      const rawResult = await this.queryEngine.executeQuery(
         datasource.type,
         datasource.connectionSettings,
-        dto.querySql,
+        wrappedSql,
         datasource.id,
-        orgId
+        orgId,
       );
+
+      // 4. Post-procesado: filtrar columnas no permitidas
+      const result = this.filteringService.filterColumns(rawResult, policy.allowedColumns);
 
       const durationMs = Date.now() - startTime;
 
-      // 3. Registrar auditoría (éxito) en la tabla `executions`
-      await this.prisma.execution.create({
-        data: {
-          organizationId: orgId,
-          userId,
-          sqlExecuted: dto.querySql,
-          durationMs,
-          rowCount: result.rowCount,
-          status: 'success',
-        },
-      }).catch((e) => console.error('Fallo al guardar log de auditoría:', e));
+      // 5. Registrar auditoría (éxito)
+      await this.prisma.execution
+        .create({
+          data: {
+            organizationId: orgId,
+            userId,
+            sqlExecuted: dto.querySql, // Guardamos el SQL original, no el envuelto
+            durationMs,
+            rowCount: result.rowCount,
+            status: 'success',
+          },
+        })
+        .catch((e) => console.error('Fallo al guardar log de auditoría:', e));
 
       return {
         ...result,
         durationMs,
+        // Metadata de filtrado para que el frontend pueda mostrar el aviso
+        filtered: isFiltered,
+        appliedPolicy: isFiltered
+          ? {
+              rowFilter: policy.rowFilter,
+              allowedColumns: policy.allowedColumns,
+            }
+          : null,
       };
     } catch (error) {
       const durationMs = Date.now() - startTime;
-      
-      // Registrar auditoría (error) en la tabla `executions`
-      await this.prisma.execution.create({
-        data: {
-          organizationId: orgId,
-          userId,
-          sqlExecuted: dto.querySql,
-          durationMs,
-          rowCount: 0,
-          status: 'error',
-          errorMessage: error.message,
-        },
-      }).catch((e) => console.error('Fallo al guardar log de auditoría:', e));
+
+      // Registrar auditoría (error)
+      await this.prisma.execution
+        .create({
+          data: {
+            organizationId: orgId,
+            userId,
+            sqlExecuted: dto.querySql,
+            durationMs,
+            rowCount: 0,
+            status: 'error',
+            errorMessage: error.message,
+          },
+        })
+        .catch((e) => console.error('Fallo al guardar log de auditoría:', e));
 
       throw error;
     }
   }
 
-  // --- SPRINT 3 PREPARATION: CRUD de queries guardadas ---
+  // --- CRUD de queries guardadas ---
   async create(orgId: string, userId: string, dto: SaveQueryDto) {
     // Validar existencia del datasource
     await this.datasourceService.findOne(orgId, dto.datasourceId);
