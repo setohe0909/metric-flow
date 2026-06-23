@@ -1,6 +1,25 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Request, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+} from '@nestjs/common';
 import { DatasourceService } from './datasource.service';
-import { CreateDatasourceDto, ConnectionSettingsDto, UpdateAccessPoliciesDto } from './dto/datasource.dto';
+import {
+  CreateDatasourceDto,
+  ConnectionSettingsDto,
+  UpdateAccessPoliciesDto,
+} from './dto/datasource.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../auth/guards/tenant.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -28,7 +47,12 @@ const fileFilter = (req: any, file: any, cb: any) => {
   const allowedExtensions = ['.sqlite', '.db', '.csv'];
   const ext = path.extname(file.originalname).toLowerCase();
   if (!allowedExtensions.includes(ext)) {
-    return cb(new BadRequestException('Extensión de archivo no soportada. Solo se permite .sqlite, .db, y .csv'), false);
+    return cb(
+      new BadRequestException(
+        'Extensión de archivo no soportada. Solo se permite .sqlite, .db, y .csv',
+      ),
+      false,
+    );
   }
   cb(null, true);
 };
@@ -55,24 +79,29 @@ export class DatasourceController {
       storage: multerStorage,
       fileFilter,
       limits: { fileSize: 20 * 1024 * 1024 }, // Max 20MB
-    })
+    }),
   )
   @HttpCode(HttpStatus.CREATED)
   async uploadFile(
     @Request() req,
     @UploadedFile() file: Express.Multer.File,
     @Body('name') name: string,
-    @Body('type') type: 'sqlite' | 'csv'
+    @Body('type') type: 'sqlite' | 'csv',
   ) {
     if (!type) {
-      throw new BadRequestException('El campo tipo (sqlite/csv) es obligatorio.');
+      throw new BadRequestException(
+        'El campo tipo (sqlite/csv) es obligatorio.',
+      );
     }
     return this.datasourceService.uploadFile(req.orgId, file, name, type);
   }
 
   @Post('test')
   @HttpCode(HttpStatus.OK)
-  async testConnection(@Request() req, @Body() dto: ConnectionSettingsDto & { type: string }) {
+  async testConnection(
+    @Request() req,
+    @Body() dto: ConnectionSettingsDto & { type: string },
+  ) {
     return this.datasourceService.test(req.orgId, dto);
   }
 
@@ -88,7 +117,12 @@ export class DatasourceController {
     @Param('id') id: string,
     @Body() dto: UpdateAccessPoliciesDto,
   ) {
-    return this.datasourceService.updatePolicies(req.orgId, id, req.userRole, dto);
+    return this.datasourceService.updatePolicies(
+      req.orgId,
+      id,
+      req.userRole,
+      dto,
+    );
   }
 
   @Delete(':id')
@@ -96,4 +130,3 @@ export class DatasourceController {
     return this.datasourceService.remove(req.orgId, id);
   }
 }
-

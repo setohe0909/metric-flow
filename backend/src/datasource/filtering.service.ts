@@ -82,14 +82,19 @@ export class FilteringService {
    * Removes columns (and their values in every row) that are not in allowedColumns.
    * If allowedColumns is null, the result is returned unchanged.
    */
-  filterColumns(result: QueryResult, allowedColumns: string[] | null): QueryResult {
+  filterColumns(
+    result: QueryResult,
+    allowedColumns: string[] | null,
+  ): QueryResult {
     if (!allowedColumns) {
       return result;
     }
 
     // Build an ordered intersection so columns appear in the order they were declared
     const allowed = new Set(allowedColumns.map((c) => c.toLowerCase()));
-    const filteredCols = result.columns.filter((c) => allowed.has(c.toLowerCase()));
+    const filteredCols = result.columns.filter((c) =>
+      allowed.has(c.toLowerCase()),
+    );
 
     const filteredRows = result.rows.map((row) => {
       const filtered: Record<string, any> = {};

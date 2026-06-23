@@ -8,8 +8,11 @@ export class EncryptionService {
 
   constructor() {
     // Usar la clave de encriptación dedicada o derivarla del JWT_SECRET
-    const secret = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'querylens_super_secret_jwt_key_for_local_dev_1234567890';
-    
+    const secret =
+      process.env.ENCRYPTION_KEY ||
+      process.env.JWT_SECRET ||
+      'querylens_super_secret_jwt_key_for_local_dev_1234567890';
+
     // Crear un hash SHA-256 del secreto para garantizar una clave de exactamente 32 bytes
     this.key = crypto.createHash('sha256').update(secret).digest();
   }
@@ -18,16 +21,18 @@ export class EncryptionService {
     try {
       const iv = crypto.randomBytes(12); // GCM usa IV de 12 bytes
       const cipher = crypto.createCipheriv(this.algorithm, this.key, iv);
-      
+
       let encrypted = cipher.update(text, 'utf8', 'hex');
       encrypted += cipher.final('hex');
-      
+
       const authTag = cipher.getAuthTag().toString('hex');
-      
+
       // Retornar iv, texto encriptado y tag de autenticación concatenados por ':'
       return `${iv.toString('hex')}:${encrypted}:${authTag}`;
     } catch (error) {
-      throw new InternalServerErrorException('Error al encriptar credenciales de base de datos');
+      throw new InternalServerErrorException(
+        'Error al encriptar credenciales de base de datos',
+      );
     }
   }
 
@@ -50,7 +55,9 @@ export class EncryptionService {
 
       return decrypted;
     } catch (error) {
-      throw new InternalServerErrorException('Error al desencriptar credenciales de base de datos. Verifica la clave de la aplicación.');
+      throw new InternalServerErrorException(
+        'Error al desencriptar credenciales de base de datos. Verifica la clave de la aplicación.',
+      );
     }
   }
 }

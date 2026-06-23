@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, InternalServerErrorException, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConnectionSettingsDto } from '../datasource/dto/datasource.dto';
 import * as pg from 'pg';
 import * as mysql from 'mysql2/promise';
@@ -34,7 +39,7 @@ export class QueryEngineService implements OnModuleDestroy {
     settings: ConnectionSettingsDto,
     sql: string,
     datasourceId?: string,
-    orgId?: string
+    orgId?: string,
   ): Promise<QueryResult> {
     // 1. Aplicar límites de seguridad
     const safeSql = this.applySafetyLimits(sql);
@@ -47,17 +52,31 @@ export class QueryEngineService implements OnModuleDestroy {
   }
 
   // Método para probar la conexión
-  async testConnection(type: string, settings: ConnectionSettingsDto, orgId?: string): Promise<boolean> {
+  async testConnection(
+    type: string,
+    settings: ConnectionSettingsDto,
+    orgId?: string,
+  ): Promise<boolean> {
     const testSql = 'SELECT 1 as test_val;';
     try {
-      const result = await this.executeQuery(type, settings, testSql, undefined, orgId);
+      const result = await this.executeQuery(
+        type,
+        settings,
+        testSql,
+        undefined,
+        orgId,
+      );
       return result.rows.length > 0;
     } catch (error) {
       throw new BadRequestException(`Conexión fallida: ${error.message}`);
     }
   }
 
-  async getDbSchema(type: string, settings: ConnectionSettingsDto, orgId?: string) {
+  async getDbSchema(
+    type: string,
+    settings: ConnectionSettingsDto,
+    orgId?: string,
+  ) {
     if (type === 'postgres') {
       const sql = `
         SELECT 
@@ -89,37 +108,51 @@ export class QueryEngineService implements OnModuleDestroy {
     } else if (type === 'sqlite' || type === 'csv') {
       // 1. Obtener todas las tablas
       const sqlTables = `SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';`;
-      const tablesResult = await this.runRawQuery(type, settings, sqlTables, undefined, orgId);
-      
+      const tablesResult = await this.runRawQuery(
+        type,
+        settings,
+        sqlTables,
+        undefined,
+        orgId,
+      );
+
       const schema: Array<{ table: string; columns: string[] }> = [];
-      
+
       // 2. Obtener columnas para cada tabla
       for (const row of tablesResult.rows) {
         // row.name o row.name (sqlite_master retorna name)
         const tableName = row.name;
-        const columnsResult = await this.runRawQuery(type, settings, `PRAGMA table_info("${tableName}");`, undefined, orgId);
+        const columnsResult = await this.runRawQuery(
+          type,
+          settings,
+          `PRAGMA table_info("${tableName}");`,
+          undefined,
+          orgId,
+        );
         const columns = columnsResult.rows.map((col: any) => col.name);
         schema.push({ table: tableName, columns });
       }
-      
+
       return schema;
     }
     return [];
   }
 
-  private formatSchemaResult(rows: any[]): Array<{ table: string; columns: string[] }> {
+  private formatSchemaResult(
+    rows: any[],
+  ): Array<{ table: string; columns: string[] }> {
     const map = new Map<string, string[]>();
     for (const row of rows) {
       const table = row.tableName || row.table_name || '';
       const column = row.columnName || row.column_name || '';
       if (!table) continue;
-      
+
       if (!map.has(table)) {
         map.set(table, []);
       }
       map.get(table)!.push(column);
     }
-    
+
     return Array.from(map.entries()).map(([table, columns]) => ({
       table,
       columns,
@@ -131,7 +164,7 @@ export class QueryEngineService implements OnModuleDestroy {
     settings: ConnectionSettingsDto,
     sql: string,
     datasourceId?: string,
-    orgId?: string
+    orgId?: string,
   ): Promise<QueryResult> {
     switch (type) {
       case 'postgres':
@@ -151,7 +184,7 @@ export class QueryEngineService implements OnModuleDestroy {
   private async runPostgresQuery(
     settings: ConnectionSettingsDto,
     sql: string,
-    datasourceId?: string
+    datasourceId?: string,
   ): Promise<QueryResult> {
     let pool: pg.Pool;
 
@@ -178,9 +211,9 @@ export class QueryEngineService implements OnModuleDestroy {
     try {
       client = await pool.connect();
       const res = await client.query({ text: sql, rowMode: 'array' });
-      
+
       const columns = res.fields.map((f) => f.name);
-      
+
       // Transformar filas de array a objeto JSON key-value
       const rows = res.rows.map((row) => {
         const rowObj: Record<string, any> = {};
@@ -212,7 +245,7 @@ export class QueryEngineService implements OnModuleDestroy {
   private async runMysqlQuery(
     settings: ConnectionSettingsDto,
     sql: string,
-    datasourceId?: string
+    datasourceId?: string,
   ): Promise<QueryResult> {
     let pool: mysql.Pool;
 
@@ -239,7 +272,7 @@ export class QueryEngineService implements OnModuleDestroy {
     try {
       const [rows, fields] = await pool.query(sql);
       const columns = fields ? fields.map((f) => f.name) : [];
-      
+
       return {
         columns,
         rows: Array.isArray(rows) ? (rows as any[]) : [],
@@ -258,36 +291,57 @@ export class QueryEngineService implements OnModuleDestroy {
   private async runSqliteQuery(
     settings: ConnectionSettingsDto,
     sql: string,
-    orgId?: string
+    orgId?: string,
   ): Promise<QueryResult> {
     if (!orgId) {
-      throw new BadRequestException('Se requiere el contexto de la organización para consultar SQLite/CSV');
+      throw new BadRequestException(
+        'Se requiere el contexto de la organización para consultar SQLite/CSV',
+      );
     }
 
     if (!settings.filePath) {
-      throw new BadRequestException('No se especificó la ruta del archivo SQLite/CSV');
+      throw new BadRequestException(
+        'No se especificó la ruta del archivo SQLite/CSV',
+      );
     }
 
     // Resolver ruta absoluta en storage/org_<id>/filename
-    const storageDir = path.resolve(__dirname, '../../..', 'storage', `org_${orgId}`);
+    const storageDir = path.resolve(
+      __dirname,
+      '../../..',
+      'storage',
+      `org_${orgId}`,
+    );
     const absolutePath = path.resolve(storageDir, settings.filePath);
 
     if (!fs.existsSync(absolutePath)) {
-      throw new BadRequestException('El archivo de base de datos no existe en el servidor');
+      throw new BadRequestException(
+        'El archivo de base de datos no existe en el servidor',
+      );
     }
 
     return new Promise((resolve, reject) => {
       // Abrir en modo lectura únicamente para evitar inyecciones destructivas
-      const db = new sqlite3.Database(absolutePath, sqlite3.OPEN_READONLY, (err) => {
-        if (err) {
-          return reject(new BadRequestException(`SQLite Connection Error: ${err.message}`));
-        }
-      });
+      const db = new sqlite3.Database(
+        absolutePath,
+        sqlite3.OPEN_READONLY,
+        (err) => {
+          if (err) {
+            return reject(
+              new BadRequestException(
+                `SQLite Connection Error: ${err.message}`,
+              ),
+            );
+          }
+        },
+      );
 
       db.all(sql, [], (err, rows: any[]) => {
         if (err) {
           db.close();
-          return reject(new BadRequestException(`SQLite SQL Error: ${err.message}`));
+          return reject(
+            new BadRequestException(`SQLite SQL Error: ${err.message}`),
+          );
         }
 
         const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -306,7 +360,7 @@ export class QueryEngineService implements OnModuleDestroy {
     const trimmedSql = sql.trim();
     // Expresión regular para buscar SELECT
     const isSelect = /^select\s/i.test(trimmedSql);
-    
+
     if (isSelect) {
       // Verificar si ya tiene LIMIT o TOP
       const hasLimit = /\slimit\s+\d+/i.test(trimmedSql);
@@ -321,7 +375,15 @@ export class QueryEngineService implements OnModuleDestroy {
 
   private createQueryTimeout(ms: number) {
     return new Promise((_, reject) =>
-      setTimeout(() => reject(new InternalServerErrorException('Query Timeout: La consulta superó el límite de 30 segundos.')), ms)
+      setTimeout(
+        () =>
+          reject(
+            new InternalServerErrorException(
+              'Query Timeout: La consulta superó el límite de 30 segundos.',
+            ),
+          ),
+        ms,
+      ),
     );
   }
 }

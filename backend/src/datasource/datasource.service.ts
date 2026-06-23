@@ -1,10 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../common/encryption/encryption.service';
 import { QueryEngineService } from '../query-engine/query-engine.service';
-import { CreateDatasourceDto, ConnectionSettingsDto, UpdateAccessPoliciesDto } from './dto/datasource.dto';
+import {
+  CreateDatasourceDto,
+  ConnectionSettingsDto,
+  UpdateAccessPoliciesDto,
+} from './dto/datasource.dto';
 import { CsvImporterService } from './csv-importer.service';
 import { AccessPolicies } from './filtering.service';
+import { Prisma } from '@prisma/client';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -14,14 +24,18 @@ export class DatasourceService {
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly queryEngine: QueryEngineService,
-    private readonly csvImporter: CsvImporterService
+    private readonly csvImporter: CsvImporterService,
   ) {}
 
   async create(orgId: string, dto: CreateDatasourceDto) {
     // 1. Probar conexión antes de guardar (pero capturar error para permitir guardar de todos modos)
     let warning: string | undefined;
     try {
-      await this.queryEngine.testConnection(dto.type, dto.connectionSettings, orgId);
+      await this.queryEngine.testConnection(
+        dto.type,
+        dto.connectionSettings,
+        orgId,
+      );
     } catch (error) {
       warning = `Conector guardado con advertencias: ${error.message}`;
     }
@@ -60,7 +74,9 @@ export class DatasourceService {
 
     // Limpiar contraseñas antes de retornar
     return datasources.map((ds) => {
-      const settings = JSON.parse(ds.connectionSettings) as ConnectionSettingsDto;
+      const settings = JSON.parse(
+        ds.connectionSettings,
+      ) as ConnectionSettingsDto;
       if (settings.password) {
         settings.password = '••••••••'; // Ocultar credencial real
       }
@@ -121,7 +137,7 @@ export class DatasourceService {
     if (!dto.type) {
       throw new BadRequestException('El campo tipo es requerido');
     }
-    
+
     // Si envían password oculto "••••••••", significa que es una DB existente que no están modificando la password.
     await this.queryEngine.testConnection(dto.type, dto, orgId);
     return { success: true, message: 'Conexión exitosa' };
@@ -138,7 +154,9 @@ export class DatasourceService {
     dto: UpdateAccessPoliciesDto,
   ) {
     if (userRole !== 'owner') {
-      throw new ForbiddenException('Solo el owner puede configurar políticas de acceso');
+      throw new ForbiddenException(
+        'Solo el owner puede configurar políticas de acceso',
+      );
     }
 
     const ds = await this.prisma.datasource.findFirst({
@@ -166,8 +184,9 @@ export class DatasourceService {
       };
     }
 
-    // Si el objeto resultante está vacío, limpiar las políticas
-    const finalPolicies = Object.keys(policies).length > 0 ? policies : null;
+    // Si el objeto resultante está vacío, limpiar las políticas usando Prisma.JsonNull
+    const finalPolicies: Prisma.InputJsonValue | typeof Prisma.JsonNull =
+      Object.keys(policies).length > 0 ? (policies as Prisma.InputJsonValue) : Prisma.JsonNull;
 
     const updated = await this.prisma.datasource.update({
       where: { id: datasourceId },
@@ -184,13 +203,23 @@ export class DatasourceService {
     };
   }
 
-  async uploadFile(orgId: string, file: Express.Multer.File, name: string, type: 'sqlite' | 'csv') {
+  async uploadFile(
+    orgId: string,
+    file: Express.Multer.File,
+    name: string,
+    type: 'sqlite' | 'csv',
+  ) {
     if (!file) {
       throw new BadRequestException('No se subió ningún archivo');
     }
 
     // Resolver ruta de base de datos SQLite específica de la organización
-    const storageDir = path.resolve(__dirname, '../../..', 'storage', `org_${orgId}`);
+    const storageDir = path.resolve(
+      __dirname,
+      '../../..',
+      'storage',
+      `org_${orgId}`,
+    );
     if (!fs.existsSync(storageDir)) {
       fs.mkdirSync(storageDir, { recursive: true });
     }
@@ -201,7 +230,7 @@ export class DatasourceService {
       // Para CSV, importamos su contenido a la base de datos SQLite central de la organización
       const centralDbName = 'org_database.sqlite';
       const sqliteDbPath = path.resolve(storageDir, centralDbName);
-      
+
       // Sanitizar el nombre del CSV para usarlo como nombre de tabla SQL
       const tableName = name
         .toLowerCase()
@@ -210,7 +239,11 @@ export class DatasourceService {
         .replace(/(^_|_$)+/g, '');
 
       // Invocar CSV importer
-      await this.csvImporter.importCsvToSqlite(file.path, tableName, sqliteDbPath);
+      await this.csvImporter.importCsvToSqlite(
+        file.path,
+        tableName,
+        sqliteDbPath,
+      );
 
       // Eliminar el archivo CSV temporal subido de disco para liberar espacio
       try {

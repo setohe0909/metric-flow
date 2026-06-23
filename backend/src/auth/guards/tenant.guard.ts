@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -18,7 +24,9 @@ export class TenantGuard implements CanActivate {
     const targetOrgId = headerOrgId || user.activeOrgId;
 
     if (!targetOrgId) {
-      throw new ForbiddenException('No se especificó ninguna organización activa');
+      throw new ForbiddenException(
+        'No se especificó ninguna organización activa',
+      );
     }
 
     // Verificar membresía en la base de datos

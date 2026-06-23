@@ -14,16 +14,25 @@ export class QueriesService {
     private readonly filteringService: FilteringService,
   ) {}
 
-  async runRaw(orgId: string, userId: string, userRole: string, dto: RunQueryDto) {
+  async runRaw(
+    orgId: string,
+    userId: string,
+    userRole: string,
+    dto: RunQueryDto,
+  ) {
     // 1. Obtener conector desencriptado (ahora incluye accessPolicies)
-    const datasource = await this.datasourceService.findOne(orgId, dto.datasourceId);
+    const datasource = await this.datasourceService.findOne(
+      orgId,
+      dto.datasourceId,
+    );
 
     // 2. Resolver política y pre-procesar el SQL con row filter si aplica
-    const { wrappedSql, policy, isFiltered } = this.filteringService.resolveForRole(
-      dto.querySql,
-      datasource.accessPolicies,
-      userRole,
-    );
+    const { wrappedSql, policy, isFiltered } =
+      this.filteringService.resolveForRole(
+        dto.querySql,
+        datasource.accessPolicies,
+        userRole,
+      );
 
     const startTime = Date.now();
     try {
@@ -37,7 +46,10 @@ export class QueriesService {
       );
 
       // 4. Post-procesado: filtrar columnas no permitidas
-      const result = this.filteringService.filterColumns(rawResult, policy.allowedColumns);
+      const result = this.filteringService.filterColumns(
+        rawResult,
+        policy.allowedColumns,
+      );
 
       const durationMs = Date.now() - startTime;
 

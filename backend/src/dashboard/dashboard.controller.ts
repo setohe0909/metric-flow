@@ -1,4 +1,17 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, UseGuards, Request, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  ForbiddenException,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { CreateDashboardDto, UpdateDashboardDto } from './dto/dashboard.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,7 +26,9 @@ export class DashboardController {
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req, @Body() dto: CreateDashboardDto) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para crear dashboards.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para crear dashboards.',
+      );
     }
     return this.dashboardService.create(req.orgId, req.user.id, dto);
   }
@@ -47,9 +62,15 @@ export class DashboardController {
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Put(':id')
-  async update(@Request() req, @Param('id') id: string, @Body() dto: UpdateDashboardDto) {
+  async update(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateDashboardDto,
+  ) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para editar dashboards.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para editar dashboards.',
+      );
     }
     return this.dashboardService.update(req.orgId, id, dto);
   }
@@ -59,10 +80,13 @@ export class DashboardController {
   async updateLayout(
     @Request() req,
     @Param('id') id: string,
-    @Body('layouts') layouts: { id: string; x: number; y: number; w: number; h: number }[],
+    @Body('layouts')
+    layouts: { id: string; x: number; y: number; w: number; h: number }[],
   ) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para modificar el diseño.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para modificar el diseño.',
+      );
     }
     return this.dashboardService.updateLayout(req.orgId, id, layouts);
   }
@@ -75,7 +99,9 @@ export class DashboardController {
     @Body('isPublic') isPublic: boolean,
   ) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para cambiar el estado de compartido.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para cambiar el estado de compartido.',
+      );
     }
     return this.dashboardService.togglePublic(req.orgId, id, isPublic);
   }
@@ -84,7 +110,9 @@ export class DashboardController {
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: string) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para eliminar dashboards.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para eliminar dashboards.',
+      );
     }
     return this.dashboardService.remove(req.orgId, id);
   }

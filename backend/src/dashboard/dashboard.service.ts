@@ -79,7 +79,11 @@ export class DashboardService {
     return { success: true };
   }
 
-  async updateLayout(orgId: string, id: string, layouts: { id: string; x: number; y: number; w: number; h: number }[]) {
+  async updateLayout(
+    orgId: string,
+    id: string,
+    layouts: { id: string; x: number; y: number; w: number; h: number }[],
+  ) {
     await this.findOne(orgId, id);
 
     return this.prisma.$transaction(
@@ -95,8 +99,8 @@ export class DashboardService {
             layoutW: l.w,
             layoutH: l.h,
           },
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -139,7 +143,9 @@ export class DashboardService {
     });
 
     if (!dashboard) {
-      throw new BadRequestException('Dashboard compartido no encontrado o privado.');
+      throw new BadRequestException(
+        'Dashboard compartido no encontrado o privado.',
+      );
     }
 
     return dashboard;
@@ -150,7 +156,9 @@ export class DashboardService {
       where: { shareToken: token, isPublic: true },
     });
     if (!dashboard) {
-      throw new BadRequestException('Dashboard compartido no encontrado o privado.');
+      throw new BadRequestException(
+        'Dashboard compartido no encontrado o privado.',
+      );
     }
 
     const widget = await this.prisma.widget.findFirst({
@@ -165,7 +173,9 @@ export class DashboardService {
     }
 
     if (!widget.query.datasourceId) {
-      throw new BadRequestException('Consulta no vinculada a un origen de datos.');
+      throw new BadRequestException(
+        'Consulta no vinculada a un origen de datos.',
+      );
     }
 
     const datasource = await this.datasourceService.findOne(

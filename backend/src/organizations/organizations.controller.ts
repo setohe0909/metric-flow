@@ -1,6 +1,23 @@
-import { Controller, Get, Put, Post, Delete, Body, Param, UseGuards, Request, ForbiddenException, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Post,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  ForbiddenException,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
-import { CreateOrganizationDto, UpdateOrganizationDto, InviteMemberDto } from './dto/organizations.dto';
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+  InviteMemberDto,
+} from './dto/organizations.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../auth/guards/tenant.guard';
 
@@ -25,7 +42,9 @@ export class OrganizationsController {
   @Put('active')
   async updateActive(@Request() req, @Body() dto: UpdateOrganizationDto) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para editar los ajustes de la organización.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para editar los ajustes de la organización.',
+      );
     }
     return this.orgsService.update(req.orgId, dto.name);
   }
@@ -41,7 +60,9 @@ export class OrganizationsController {
   @HttpCode(HttpStatus.CREATED)
   async inviteMember(@Request() req, @Body() dto: InviteMemberDto) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para agregar miembros.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para agregar miembros.',
+      );
     }
     return this.orgsService.inviteMember(req.orgId, dto.email, dto.role);
   }
@@ -50,7 +71,9 @@ export class OrganizationsController {
   @Delete('active/members/:id')
   async removeMember(@Request() req, @Param('id') membershipId: string) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para eliminar miembros.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para eliminar miembros.',
+      );
     }
     return this.orgsService.removeMember(req.orgId, membershipId, req.user.id);
   }

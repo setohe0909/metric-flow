@@ -6,28 +6,31 @@ import * as path from 'path';
 
 @Injectable()
 export class CsvImporterService {
-  
   async importCsvToSqlite(
     csvFilePath: string,
     tableName: string,
-    sqliteDbPath: string
+    sqliteDbPath: string,
   ): Promise<{ rowCount: number; columns: string[] }> {
     return new Promise((resolve, reject) => {
       const records: any[][] = [];
-      
+
       // Parsear archivo CSV
       fs.createReadStream(csvFilePath)
         .pipe(
           parse({
             delimiter: ',',
             skip_empty_lines: true,
-          })
+          }),
         )
         .on('data', (row) => {
           records.push(row);
         })
         .on('error', (error) => {
-          reject(new BadRequestException(`Fallo al parsear el archivo CSV: ${error.message}`));
+          reject(
+            new BadRequestException(
+              `Fallo al parsear el archivo CSV: ${error.message}`,
+            ),
+          );
         })
         .on('end', async () => {
           if (records.length === 0) {
@@ -45,7 +48,7 @@ export class CsvImporterService {
               .toLowerCase()
               .trim()
               .replace(/[^a-z0-9]+/g, '_')
-              .replace(/(^_|_$)+/g, '')
+              .replace(/(^_|_$)+/g, ''),
           );
 
           // Asegurar que no existan duplicados en cabeceras
@@ -64,7 +67,11 @@ export class CsvImporterService {
           // Abrir base de datos SQLite de destino
           const db = new sqlite3.Database(sqliteDbPath, (err) => {
             if (err) {
-              return reject(new BadRequestException(`Error al abrir base de datos SQLite: ${err.message}`));
+              return reject(
+                new BadRequestException(
+                  `Error al abrir base de datos SQLite: ${err.message}`,
+                ),
+              );
             }
           });
 
@@ -72,9 +79,11 @@ export class CsvImporterService {
             // Eliminar tabla anterior si existe para sobreescribir los datos
             db.serialize(() => {
               db.run(`DROP TABLE IF EXISTS ${tableName};`);
-              
+
               // Crear tabla dinámica con todas las columnas de tipo TEXT
-              const columnsDdl = sanitizedColumns.map((col) => `"${col}" TEXT`).join(', ');
+              const columnsDdl = sanitizedColumns
+                .map((col) => `"${col}" TEXT`)
+                .join(', ');
               db.run(`CREATE TABLE ${tableName} (${columnsDdl});`);
 
               // Preparar inserción masiva
@@ -85,14 +94,20 @@ export class CsvImporterService {
               // Insertar filas en bloque
               for (const row of rows) {
                 // Rellenar con nulos si faltan columnas en alguna fila del CSV
-                const paddedRow = sanitizedColumns.map((_, idx) => (row[idx] !== undefined ? row[idx] : null));
+                const paddedRow = sanitizedColumns.map((_, idx) =>
+                  row[idx] !== undefined ? row[idx] : null,
+                );
                 stmt.run(paddedRow);
               }
 
               stmt.finalize((finalizeErr) => {
                 db.close();
                 if (finalizeErr) {
-                  reject(new BadRequestException(`Fallo al insertar registros del CSV: ${finalizeErr.message}`));
+                  reject(
+                    new BadRequestException(
+                      `Fallo al insertar registros del CSV: ${finalizeErr.message}`,
+                    ),
+                  );
                 } else {
                   resolve({
                     rowCount: rows.length,
@@ -103,7 +118,11 @@ export class CsvImporterService {
             });
           } catch (error: any) {
             db.close();
-            reject(new BadRequestException(`Fallo en la importación SQL: ${error.message}`));
+            reject(
+              new BadRequestException(
+                `Fallo en la importación SQL: ${error.message}`,
+              ),
+            );
           }
         });
     });

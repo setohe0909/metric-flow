@@ -4,7 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Prefijo global para las rutas de la API
   app.setGlobalPrefix('api');
 
@@ -29,4 +29,3 @@ async function bootstrap() {
   console.log(`MetricFlow backend running on: http://localhost:${port}/api`);
 }
 bootstrap();
-

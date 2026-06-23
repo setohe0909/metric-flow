@@ -27,4 +27,3 @@ import { WidgetModule } from './widget/widget.module';
   providers: [AppService],
 })
 export class AppModule {}
-

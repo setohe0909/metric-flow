@@ -39,15 +39,21 @@ describe('FilteringService', () => {
         viewer: { allowedColumns: ['id', 'name'], rowFilter: "country = 'CO'" },
       };
       const result = service.getPolicyForRole(policies, 'viewer');
-      expect(result).toEqual({ allowedColumns: ['id', 'name'], rowFilter: "country = 'CO'" });
+      expect(result).toEqual({
+        allowedColumns: ['id', 'name'],
+        rowFilter: "country = 'CO'",
+      });
     });
 
     it('should return admin policy when defined', () => {
       const policies = {
-        admin: { allowedColumns: null, rowFilter: "deleted_at IS NULL" },
+        admin: { allowedColumns: null, rowFilter: 'deleted_at IS NULL' },
       };
       const result = service.getPolicyForRole(policies, 'admin');
-      expect(result).toEqual({ allowedColumns: null, rowFilter: 'deleted_at IS NULL' });
+      expect(result).toEqual({
+        allowedColumns: null,
+        rowFilter: 'deleted_at IS NULL',
+      });
     });
 
     it('should return open policy for admin when no admin policy is defined', () => {
@@ -146,7 +152,10 @@ describe('FilteringService', () => {
     });
 
     it('should ignore allowedColumns entries that do not exist in the result', () => {
-      const result = service.filterColumns(baseResult, ['id', 'nonexistent_column']);
+      const result = service.filterColumns(baseResult, [
+        'id',
+        'nonexistent_column',
+      ]);
       expect(result.columns).toEqual(['id']);
       expect(result.rows[0]).toEqual({ id: 1 });
     });
@@ -157,7 +166,11 @@ describe('FilteringService', () => {
     });
 
     it('should handle empty rows gracefully', () => {
-      const emptyResult: QueryResult = { columns: ['id', 'name'], rows: [], rowCount: 0 };
+      const emptyResult: QueryResult = {
+        columns: ['id', 'name'],
+        rows: [],
+        rowCount: 0,
+      };
       const result = service.filterColumns(emptyResult, ['id']);
       expect(result.columns).toEqual(['id']);
       expect(result.rows).toEqual([]);
@@ -172,7 +185,11 @@ describe('FilteringService', () => {
       const policies = {
         viewer: { allowedColumns: ['id'], rowFilter: "status = 'paid'" },
       };
-      const { wrappedSql, isFiltered } = service.resolveForRole(sql, policies, 'owner');
+      const { wrappedSql, isFiltered } = service.resolveForRole(
+        sql,
+        policies,
+        'owner',
+      );
       expect(wrappedSql).toBe(sql);
       expect(isFiltered).toBe(false);
     });
@@ -182,7 +199,11 @@ describe('FilteringService', () => {
       const policies = {
         viewer: { allowedColumns: null, rowFilter: "status = 'paid'" },
       };
-      const { wrappedSql, isFiltered, policy } = service.resolveForRole(sql, policies, 'viewer');
+      const { wrappedSql, isFiltered, policy } = service.resolveForRole(
+        sql,
+        policies,
+        'viewer',
+      );
       expect(wrappedSql).toContain("status = 'paid'");
       expect(isFiltered).toBe(true);
       expect(policy.rowFilter).toBe("status = 'paid'");

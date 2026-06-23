@@ -1,4 +1,12 @@
-import { IsString, IsNotEmpty, IsOptional, IsUUID, IsObject, IsInt, Min } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUUID,
+  IsObject,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 export class CreateWidgetDto {
   @IsUUID('4', { message: 'El ID del dashboard debe ser un UUID válido' })

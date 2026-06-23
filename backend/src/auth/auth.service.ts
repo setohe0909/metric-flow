@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
@@ -25,7 +29,7 @@ export class AuthService {
 
     // Generar slug para la organización
     let slug = this.slugify(dto.organizationName);
-    
+
     // Verificar unicidad del slug
     const existingOrg = await this.prisma.organization.findUnique({
       where: { slug },
@@ -36,33 +40,35 @@ export class AuthService {
     }
 
     // Crear usuario, org y membresía en una transacción atómica
-    const { user, organization } = await this.prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          email: dto.email,
-          passwordHash,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-        },
-      });
+    const { user, organization } = await this.prisma.$transaction(
+      async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email: dto.email,
+            passwordHash,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+          },
+        });
 
-      const newOrg = await tx.organization.create({
-        data: {
-          name: dto.organizationName,
-          slug,
-        },
-      });
+        const newOrg = await tx.organization.create({
+          data: {
+            name: dto.organizationName,
+            slug,
+          },
+        });
 
-      await tx.membership.create({
-        data: {
-          userId: newUser.id,
-          organizationId: newOrg.id,
-          role: 'owner',
-        },
-      });
+        await tx.membership.create({
+          data: {
+            userId: newUser.id,
+            organizationId: newOrg.id,
+            role: 'owner',
+          },
+        });
 
-      return { user: newUser, organization: newOrg };
-    });
+        return { user: newUser, organization: newOrg };
+      },
+    );
 
     // Firmar token JWT inicial
     const token = this.jwtService.sign({
@@ -97,7 +103,10 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas');
     }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      user.passwordHash,
+    );
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciales incorrectas');
@@ -110,7 +119,9 @@ export class AuthService {
     });
 
     if (memberships.length === 0) {
-      throw new BadRequestException('El usuario no pertenece a ninguna organización');
+      throw new BadRequestException(
+        'El usuario no pertenece a ninguna organización',
+      );
     }
 
     // Usar la primera membresía como default activeOrgId

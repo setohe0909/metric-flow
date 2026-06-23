@@ -1,4 +1,16 @@
-import { Controller, Post, Get, Delete, Body, Param, UseGuards, Request, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+  ForbiddenException,
+} from '@nestjs/common';
 import { QueriesService } from './queries.service';
 import { RunQueryDto, SaveQueryDto } from './dto/queries.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,9 +27,16 @@ export class QueriesController {
     // Viewers pueden ejecutar queries guardadas a través de widgets,
     // pero el SQL libre sigue restringido a owner y admin.
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no tienen permiso para ejecutar SQL libre.');
+      throw new ForbiddenException(
+        'Los visualizadores no tienen permiso para ejecutar SQL libre.',
+      );
     }
-    return this.queriesService.runRaw(req.orgId, req.user.id, req.userRole, dto);
+    return this.queriesService.runRaw(
+      req.orgId,
+      req.user.id,
+      req.userRole,
+      dto,
+    );
   }
 
   // --- CRUD Rutas (Sprint 3) ---
@@ -25,7 +44,9 @@ export class QueriesController {
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req, @Body() dto: SaveQueryDto) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no pueden guardar consultas.');
+      throw new ForbiddenException(
+        'Los visualizadores no pueden guardar consultas.',
+      );
     }
     return this.queriesService.create(req.orgId, req.user.id, dto);
   }
@@ -43,7 +64,9 @@ export class QueriesController {
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: string) {
     if (req.userRole === 'viewer') {
-      throw new ForbiddenException('Los visualizadores no pueden eliminar consultas.');
+      throw new ForbiddenException(
+        'Los visualizadores no pueden eliminar consultas.',
+      );
     }
     return this.queriesService.remove(req.orgId, id);
   }

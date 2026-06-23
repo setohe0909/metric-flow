@@ -12,7 +12,9 @@ export class WidgetService {
       where: { id: dto.dashboardId, organizationId: orgId },
     });
     if (!dashboard) {
-      throw new BadRequestException('El dashboard especificado no pertenece a esta organización.');
+      throw new BadRequestException(
+        'El dashboard especificado no pertenece a esta organización.',
+      );
     }
 
     // 2. Validar query pertenece a la org activa (si se provee)
@@ -21,7 +23,9 @@ export class WidgetService {
         where: { id: dto.queryId, organizationId: orgId },
       });
       if (!query) {
-        throw new BadRequestException('La consulta especificada no pertenece a esta organización.');
+        throw new BadRequestException(
+          'La consulta especificada no pertenece a esta organización.',
+        );
       }
     }
 

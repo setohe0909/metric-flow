@@ -79,7 +79,9 @@ export class OrganizationsService {
     });
 
     if (existingMember) {
-      throw new BadRequestException('El usuario ya pertenece a esta organización.');
+      throw new BadRequestException(
+        'El usuario ya pertenece a esta organización.',
+      );
     }
 
     return this.prisma.membership.create({
@@ -101,13 +103,19 @@ export class OrganizationsService {
     });
   }
 
-  async removeMember(orgId: string, membershipId: string, currentUserId: string) {
+  async removeMember(
+    orgId: string,
+    membershipId: string,
+    currentUserId: string,
+  ) {
     const membership = await this.prisma.membership.findFirst({
       where: { id: membershipId, organizationId: orgId },
     });
 
     if (!membership) {
-      throw new BadRequestException('Miembro no encontrado en esta organización.');
+      throw new BadRequestException(
+        'Miembro no encontrado en esta organización.',
+      );
     }
 
     if (membership.role === 'owner') {
@@ -115,7 +123,9 @@ export class OrganizationsService {
         where: { organizationId: orgId, role: 'owner' },
       });
       if (ownerCount <= 1) {
-        throw new BadRequestException('No puedes eliminar al único propietario de la organización.');
+        throw new BadRequestException(
+          'No puedes eliminar al único propietario de la organización.',
+        );
       }
     }
 
