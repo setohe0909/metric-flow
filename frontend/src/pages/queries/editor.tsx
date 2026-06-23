@@ -218,62 +218,68 @@ export default function QueryEditor() {
   return (
     <div className="space-y-6 flex flex-col h-[calc(100vh-6rem)] relative">
       {/* Top Action Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0 border-b-2 border-[#23251d] pb-6">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[#23251d] flex items-center gap-2.5 font-mono">
-            <Terminal className="h-6 w-6 text-[#f7a501]" /> SQL Editor
-          </h1>
-          <p className="text-xs text-[#4d4f46] mt-1 font-mono">
-            Escribe consultas SQL libres y visualiza resultados instantáneamente.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 font-mono">
-          {/* Selector de Conector */}
-          <div className="flex items-center gap-2 bg-white border-2 border-[#23251d] rounded-xl px-3 py-1.5 min-w-[220px] shadow-[2px_2px_0px_0px_#23251d]">
-            <Database className="h-4 w-4 text-[#f7a501] flex-shrink-0" />
-            {isLoadingDss ? (
-              <span className="text-xs text-slate-400">Cargando DBs...</span>
-            ) : datasources.length === 0 ? (
-              <span className="text-xs text-red-500 font-bold">Sin DBs conectadas</span>
-            ) : (
-              <select
-                value={selectedDsId}
-                onChange={(e) => setSelectedDsId(e.target.value)}
-                className="bg-transparent text-xs text-[#23251d] focus:outline-none w-full font-bold cursor-pointer"
-              >
-                {datasources.map((ds) => (
-                  <option key={ds.id} value={ds.id} className="bg-white text-[#23251d]">
-                    {ds.name} ({ds.type.toUpperCase()})
-                  </option>
-                ))}
-              </select>
-            )}
+      <div className="flex flex-col gap-3 flex-shrink-0 border-b-2 border-[#23251d] pb-5">
+        {/* Row 1: Title + Secondary Controls */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-[#23251d] flex items-center gap-2.5 font-mono">
+              <Terminal className="h-6 w-6 text-[#f7a501]" /> SQL Editor
+            </h1>
+            <p className="text-xs text-[#4d4f46] mt-1 font-mono">
+              Escribe consultas SQL libres y visualiza resultados instantáneamente.
+            </p>
           </div>
 
-          {activeQueryId && (
+          <div className="flex items-center gap-3 font-mono flex-shrink-0">
+            {/* Selector de Conector */}
+            <div className="flex items-center gap-2 bg-white border-2 border-[#23251d] rounded-xl px-3 py-1.5 min-w-[200px] shadow-[2px_2px_0px_0px_#23251d]">
+              <Database className="h-4 w-4 text-[#f7a501] flex-shrink-0" />
+              {isLoadingDss ? (
+                <span className="text-xs text-slate-400">Cargando DBs...</span>
+              ) : datasources.length === 0 ? (
+                <span className="text-xs text-red-500 font-bold">Sin DBs conectadas</span>
+              ) : (
+                <select
+                  value={selectedDsId}
+                  onChange={(e) => setSelectedDsId(e.target.value)}
+                  className="bg-transparent text-xs text-[#23251d] focus:outline-none w-full font-bold cursor-pointer"
+                >
+                  {datasources.map((ds) => (
+                    <option key={ds.id} value={ds.id} className="bg-white text-[#23251d]">
+                      {ds.name} ({ds.type.toUpperCase()})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {activeQueryId && (
+              <button
+                onClick={() => {
+                  if (dashboards.length > 0) {
+                    setSelectedDashboardId(dashboards[0].id);
+                  }
+                  setShowWidgetModal(true);
+                }}
+                disabled={!selectedDsId || isRunning}
+                className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
+              >
+                <Sliders className="h-3.5 w-3.5" /> Crear Widget
+              </button>
+            )}
+
             <button
-              onClick={() => {
-                if (dashboards.length > 0) {
-                  setSelectedDashboardId(dashboards[0].id);
-                }
-                setShowWidgetModal(true);
-              }}
+              onClick={() => setShowSaveModal(true)}
               disabled={!selectedDsId || isRunning}
               className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
             >
-              <Sliders className="h-3.5 w-3.5" /> Crear Widget
+              <Save className="h-3.5 w-3.5" /> Guardar Query
             </button>
-          )}
+          </div>
+        </div>
 
-          <button
-            onClick={() => setShowSaveModal(true)}
-            disabled={!selectedDsId || isRunning}
-            className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
-          >
-            <Save className="h-3.5 w-3.5" /> Guardar Query
-          </button>
-
+        {/* Row 2: Primary Action */}
+        <div>
           <button
             onClick={handleRun}
             disabled={isRunning || !selectedDsId}
