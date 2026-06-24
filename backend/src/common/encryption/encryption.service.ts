@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as crypto from 'crypto';
+import { loadSecurityConfig } from '../config/security-config';
 
 @Injectable()
 export class EncryptionService {
@@ -7,14 +8,10 @@ export class EncryptionService {
   private readonly key: Buffer;
 
   constructor() {
-    // Usar la clave de encriptación dedicada o derivarla del JWT_SECRET
-    const secret =
-      process.env.ENCRYPTION_KEY ||
-      process.env.JWT_SECRET ||
-      'querylens_super_secret_jwt_key_for_local_dev_1234567890';
+    const { encryptionKey } = loadSecurityConfig();
 
     // Crear un hash SHA-256 del secreto para garantizar una clave de exactamente 32 bytes
-    this.key = crypto.createHash('sha256').update(secret).digest();
+    this.key = crypto.createHash('sha256').update(encryptionKey).digest();
   }
 
   encrypt(text: string): string {

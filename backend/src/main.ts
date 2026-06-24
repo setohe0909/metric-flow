@@ -1,8 +1,11 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { loadSecurityConfig } from './common/config/security-config';
 
 async function bootstrap() {
+  loadSecurityConfig();
   const app = await NestFactory.create(AppModule);
 
   // Prefijo global para las rutas de la API

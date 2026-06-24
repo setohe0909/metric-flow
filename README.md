@@ -29,7 +29,7 @@
 
 **MetricFlow** is a self-hosted, open-source business intelligence platform that lets you:
 
-- 🔌 **Connect** to PostgreSQL, MySQL, SQLite, Google BigQuery, Snowflake, or upload CSV files
+- 🔌 **Connect** to PostgreSQL and MySQL for officially supported query execution
 - 🧠 **Write SQL** in a rich Monaco editor with live query execution
 - 📊 **Build charts** — bar, line, pie, KPI cards, and data tables
 - 🗂️ **Compose dashboards** with drag-and-drop widget layouts
@@ -141,6 +141,10 @@ ENCRYPTION_KEY="32-char-hex-key-for-aes-256"
 PORT=3000
 ```
 
+`JWT_SECRET` and `ENCRYPTION_KEY` are mandatory, must be different, and do not
+have fallback values. Generate independent random values before starting the
+backend.
+
 ### 4. Install & migrate
 
 ```bash
@@ -226,7 +230,9 @@ npm run build         # Vite production build
 ## 🔒 Security Notes
 
 - Datasource passwords and connection strings are **AES-256 encrypted** before being stored in PostgreSQL.
-- JWT tokens are signed with a secret configured via `JWT_SECRET`. Use a strong random value in production.
+- JWT tokens are signed with the mandatory `JWT_SECRET`.
+- Datasource credentials use the mandatory, independent `ENCRYPTION_KEY`.
+- PostgreSQL and MySQL queries are parsed and executed in read-only transactions.
 - The `viewer` role is **read-only** — viewers cannot create or modify queries, datasources, or dashboards.
 - Public dashboard share tokens are UUID-based and revocable by the dashboard owner.
 - Never commit your `.env` file. It is listed in `.gitignore` by default.
