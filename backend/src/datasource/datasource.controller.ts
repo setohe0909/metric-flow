@@ -22,6 +22,8 @@ import {
 } from './dto/datasource.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../auth/guards/tenant.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import * as path from 'path';
@@ -57,12 +59,13 @@ const fileFilter = (req: any, file: any, cb: any) => {
   cb(null, true);
 };
 
-@UseGuards(JwtAuthGuard, TenantGuard)
+@UseGuards(JwtAuthGuard, TenantGuard, RolesGuard)
 @Controller('datasources')
 export class DatasourceController {
   constructor(private readonly datasourceService: DatasourceService) {}
 
   @Post()
+  @Roles('owner', 'admin')
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req, @Body() dto: CreateDatasourceDto) {
     return this.datasourceService.create(req.orgId, dto);
@@ -74,6 +77,7 @@ export class DatasourceController {
   }
 
   @Post('upload-file')
+  @Roles('owner', 'admin')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: multerStorage,
@@ -97,6 +101,7 @@ export class DatasourceController {
   }
 
   @Post('test')
+  @Roles('owner', 'admin')
   @HttpCode(HttpStatus.OK)
   async testConnection(
     @Request() req,
@@ -106,11 +111,13 @@ export class DatasourceController {
   }
 
   @Get(':id/schema')
+  @Roles('owner', 'admin')
   async getSchema(@Request() req, @Param('id') id: string) {
     return this.datasourceService.getSchema(req.orgId, id);
   }
 
   @Put(':id/policies')
+  @Roles('owner')
   @HttpCode(HttpStatus.OK)
   async updatePolicies(
     @Request() req,
@@ -126,6 +133,7 @@ export class DatasourceController {
   }
 
   @Delete(':id')
+  @Roles('owner', 'admin')
   async remove(@Request() req, @Param('id') id: string) {
     return this.datasourceService.remove(req.orgId, id);
   }
