@@ -6,7 +6,7 @@ import AppLayout from './layouts/app-layout';
 
 // Pages
 import Login from './pages/login';
-import Signup from './pages/signup';
+import Setup from './pages/setup';
 import PublicDashboardView from './pages/dashboards/public';
 import DashboardList from './pages/dashboards/list';
 import DashboardDetail from './pages/dashboards/detail';
@@ -30,8 +30,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
+          <Route path="/setup" element={<Setup />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
           <Route path="/shared/dashboard/:token" element={<PublicDashboardView />} />
 
           {/* Protected Routes */}

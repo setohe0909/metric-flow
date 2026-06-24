@@ -15,6 +15,7 @@ interface LoginResponse {
     id: string;
     name: string;
     slug: string;
+    role: string;
   };
 }
 
@@ -31,20 +32,7 @@ export function useAuth() {
     onSuccess: (data) => {
       // Al loguearse, como el endpoint login solo devuelve una org en el payload (la default),
       // creamos un array de organizaciones temporal para el store.
-      const org = { ...data.organization, role: 'owner' }; // Asignar un rol por defecto
-      setAuth(data.user, data.token, [org], org);
-      queryClient.invalidateQueries({ queryKey: ['auth-me'] });
-      navigate('/dashboards');
-    },
-  });
-
-  const registerMutation = useMutation({
-    mutationFn: async (userData: Record<string, string>) => {
-      const { data } = await apiClient.post<LoginResponse>('/auth/register', userData);
-      return data;
-    },
-    onSuccess: (data) => {
-      const org = { ...data.organization, role: 'owner' };
+      const org = data.organization;
       setAuth(data.user, data.token, [org], org);
       queryClient.invalidateQueries({ queryKey: ['auth-me'] });
       navigate('/dashboards');
@@ -86,9 +74,6 @@ export function useAuth() {
     login: loginMutation.mutate,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
-    register: registerMutation.mutate,
-    isRegistering: registerMutation.isPending,
-    registerError: registerMutation.error,
     logout,
     user,
     activeOrg,

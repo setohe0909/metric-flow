@@ -1,18 +1,55 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LogIn, Loader2, Database } from 'lucide-react';
+import { useSetupStatus } from '@/features/setup/hooks/use-setup';
 
 export default function Login() {
   const { login, isLoggingIn, loginError } = useAuth();
+  const navigate = useNavigate();
+  const {
+    data: setupStatus,
+    isLoading: isLoadingSetup,
+    isError: isSetupError,
+  } = useSetupStatus();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (setupStatus && !setupStatus.initialized) {
+      navigate('/setup', { replace: true });
+    }
+  }, [navigate, setupStatus]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
     login({ email, password });
   };
+
+  if (isLoadingSetup || setupStatus?.initialized === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#eeefe9]">
+        <Loader2
+          aria-label="Comprobando instalación"
+          className="h-8 w-8 animate-spin text-[#23251d]"
+        />
+      </div>
+    );
+  }
+
+  if (isSetupError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#eeefe9] px-4">
+        <div
+          role="alert"
+          className="max-w-md rounded-xl border-2 border-[#23251d] bg-red-100 p-5 text-center font-semibold text-[#23251d]"
+        >
+          No fue posible consultar el estado de la instalación.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-grid-dots flex flex-col justify-center py-12 sm:px-6 lg:px-8" style={{ backgroundColor: '#eeefe9' }}>
@@ -39,16 +76,7 @@ export default function Login() {
           Inicia sesión en tu cuenta
         </h2>
         <p className="mt-2 text-center text-sm" style={{ color: '#6b6e62' }}>
-          ¿No tienes cuenta?{' '}
-          <Link
-            to="/signup"
-            className="font-semibold underline underline-offset-2 transition-colors"
-            style={{ color: '#23251d' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#f7a501')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#23251d')}
-          >
-            Crea una cuenta gratis
-          </Link>
+          Acceso para usuarios de esta instalación.
         </p>
       </div>
 

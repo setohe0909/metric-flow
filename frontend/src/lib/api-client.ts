@@ -39,7 +39,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('metricflow_active_org_id');
       if (
         window.location.pathname !== '/login' &&
-        window.location.pathname !== '/signup' &&
+        window.location.pathname !== '/setup' &&
         !window.location.pathname.startsWith('/shared/dashboard')
       ) {
         window.location.href = '/login';

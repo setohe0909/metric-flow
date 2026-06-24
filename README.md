@@ -35,7 +35,7 @@
 - 🗂️ **Compose dashboards** with drag-and-drop widget layouts
 - 🔗 **Share and Embed** dashboards publicly via secure share tokens and customizable `<iframe>` snippets
 - 🛡️ **Granular Access Control** — row-level filters and column-level permission masks per role (admin / viewer)
-- 🏢 **Multi-tenant** — organizations, members, and role-based access (owner / admin / viewer)
+- 🏢 **Self-hosted workspace** — one organization per installation with role-based access
 - 🔐 **Secure** — AES-256 encrypted datasource credentials, JWT authentication
 
 ---
@@ -62,7 +62,7 @@
 ```
 ┌─────────────────────────────────────────────────────┐
 │                    Browser (React 19)                │
-│  Login · Signup · Datasources · SQL Editor ·        │
+│  Setup · Login · Datasources · SQL Editor ·         │
 │  Query Library · Dashboard Builder · Widget Creator │
 └────────────────────────┬────────────────────────────┘
                          │ HTTP / REST
@@ -79,7 +79,7 @@
 
 ### Key Design Decisions
 
-- **Multi-tenancy via Organizations** — every resource (datasource, query, dashboard, widget, execution log) is scoped to an `Organization`. Users join orgs with a `Role` (owner | admin | viewer).
+- **One organization per installation** — the setup assistant creates the organization and first owner once; public registration and additional organization creation are disabled.
 - **Encrypted credentials** — datasource connection strings are stored AES-256 encrypted at rest; never exposed through the API.
 - **Query Engine** — a dedicated `query-engine` module proxies SQL execution against user datasources and returns typed `{ columns, rows }` payloads.
 - **Execution Audit Log** — every SQL run is recorded in the `executions` table (query, user, duration, row count, status).
@@ -170,6 +170,11 @@ npm run dev
 # App available at http://localhost:5173
 ```
 
+Open `http://localhost:5173/setup` on a new installation. The setup assistant
+creates the organization and first owner exactly once. Existing installations
+are marked as initialized automatically by the database migration and continue
+to use `/login`.
+
 ---
 
 ## 📁 Project Structure
@@ -178,7 +183,8 @@ npm run dev
 metric-flow/
 ├── backend/                  # NestJS API
 │   ├── src/
-│   │   ├── auth/             # JWT auth, login, register
+│   │   ├── auth/             # JWT authentication and login
+│   │   ├── setup/            # One-time installation bootstrap
 │   │   ├── organizations/    # Org management & membership
 │   │   ├── datasource/       # Datasource CRUD + connection test
 │   │   ├── query-engine/     # Proxy SQL execution against user DBs
