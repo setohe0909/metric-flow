@@ -12,6 +12,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { BigQuery } from '@google-cloud/bigquery';
 import * as snowflake from 'snowflake-sdk';
+import { SqlReadOnlyPolicy } from './sql-read-only-policy';
 
 interface QueryResult {
   columns: string[];
@@ -24,6 +25,8 @@ export class QueryEngineService implements OnModuleDestroy {
   // Caché de pools de conexión en memoria para PostgreSQL y MySQL
   private pgPools = new Map<string, pg.Pool>();
   private mysqlPools = new Map<string, mysql.Pool>();
+
+  constructor(private readonly sqlReadOnlyPolicy: SqlReadOnlyPolicy) {}
 
   async onModuleDestroy() {
     // Cerrar todos los pools al apagar el módulo
@@ -43,14 +46,14 @@ export class QueryEngineService implements OnModuleDestroy {
     datasourceId?: string,
     orgId?: string,
   ): Promise<QueryResult> {
-    // 1. Aplicar límites de seguridad
-    const safeSql = this.applySafetyLimits(sql);
+    // 1. Validar que la consulta sea de solo lectura y aplicar límites.
+    const safeSql = this.sqlReadOnlyPolicy.prepare(type, sql);
 
     // 2. Ejecutar según el tipo de base de datos con un timeout de 30 segundos
-    return Promise.race([
+    return this.withQueryTimeout(
       this.runRawQuery(type, settings, safeSql, datasourceId, orgId),
-      this.createQueryTimeout(30000),
-    ]) as Promise<QueryResult>;
+      30000,
+    );
   }
 
   // Método para probar la conexión
@@ -239,9 +242,14 @@ export class QueryEngineService implements OnModuleDestroy {
     }
 
     let client: pg.PoolClient | null = null;
+    let transactionStarted = false;
     try {
       client = await pool.connect();
+      await client.query('BEGIN READ ONLY');
+      transactionStarted = true;
       const res = await client.query({ text: sql, rowMode: 'array' });
+      await client.query('COMMIT');
+      transactionStarted = false;
 
       const columns = res.fields.map((f) => f.name);
 
@@ -260,6 +268,9 @@ export class QueryEngineService implements OnModuleDestroy {
         rowCount: rows.length,
       };
     } catch (error) {
+      if (client && transactionStarted) {
+        await client.query('ROLLBACK').catch(() => {});
+      }
       throw new BadRequestException(`PostgreSQL Error: ${error.message}`);
     } finally {
       if (client) {
@@ -300,8 +311,15 @@ export class QueryEngineService implements OnModuleDestroy {
       }
     }
 
+    let connection: mysql.PoolConnection | null = null;
+    let transactionStarted = false;
     try {
-      const [rows, fields] = await pool.query(sql);
+      connection = await pool.getConnection();
+      await connection.query('START TRANSACTION READ ONLY');
+      transactionStarted = true;
+      const [rows, fields] = await connection.query(sql);
+      await connection.query('COMMIT');
+      transactionStarted = false;
       const columns = fields ? fields.map((f) => f.name) : [];
 
       return {
@@ -310,8 +328,12 @@ export class QueryEngineService implements OnModuleDestroy {
         rowCount: Array.isArray(rows) ? (rows as any[]).length : 0,
       };
     } catch (error) {
+      if (connection && transactionStarted) {
+        await connection.query('ROLLBACK').catch(() => {});
+      }
       throw new BadRequestException(`MySQL Error: ${error.message}`);
     } finally {
+      connection?.release();
       if (!datasourceId) {
         await pool.end().catch(() => {});
       }
@@ -489,34 +511,30 @@ export class QueryEngineService implements OnModuleDestroy {
 
   // --- UTILS & SAFETY ---
 
-  private applySafetyLimits(sql: string): string {
-    const trimmedSql = sql.trim();
-    // Expresión regular para buscar SELECT
-    const isSelect = /^select\s/i.test(trimmedSql);
-
-    if (isSelect) {
-      // Verificar si ya tiene LIMIT o TOP
-      const hasLimit = /\slimit\s+\d+/i.test(trimmedSql);
-      if (!hasLimit) {
-        // Remover punto y coma al final si existe
-        const sqlWithoutSemicolon = trimmedSql.replace(/;$/, '');
-        return `${sqlWithoutSemicolon} LIMIT 1000;`;
+  private async withQueryTimeout<T>(
+    operation: Promise<T>,
+    ms: number,
+  ): Promise<T> {
+    let timeout: NodeJS.Timeout | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_, reject) => {
+          timeout = setTimeout(
+            () =>
+              reject(
+                new InternalServerErrorException(
+                  'Query Timeout: La consulta superó el límite de 30 segundos.',
+                ),
+              ),
+            ms,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
       }
     }
-    return sql;
-  }
-
-  private createQueryTimeout(ms: number) {
-    return new Promise((_, reject) =>
-      setTimeout(
-        () =>
-          reject(
-            new InternalServerErrorException(
-              'Query Timeout: La consulta superó el límite de 30 segundos.',
-            ),
-          ),
-        ms,
-      ),
-    );
   }
 }
