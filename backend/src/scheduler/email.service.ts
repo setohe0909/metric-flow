@@ -66,21 +66,19 @@ export class EmailService {
     }
 
     try {
-      const info = await this.transporter.sendMail({
+      const info = (await this.transporter.sendMail({
         from,
         to: to.join(', '),
         subject,
         html: htmlContent,
         attachments,
-      });
+      })) as Record<string, unknown>;
 
-      this.logger.log(`Email successfully sent: ${info.messageId}`);
+      this.logger.log(`Email successfully sent: ${String(info.messageId)}`);
       return true;
-    } catch (error) {
-      this.logger.error(
-        `Failed to send email to ${to.join(', ')}:`,
-        error.stack,
-      );
+    } catch (error: unknown) {
+      const stack = error instanceof Error ? error.stack : '';
+      this.logger.error(`Failed to send email to ${to.join(', ')}:`, stack);
       throw error;
     }
   }

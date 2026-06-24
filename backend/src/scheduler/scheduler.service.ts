@@ -32,9 +32,7 @@ export class SchedulerService {
       return interval.next().toDate();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new BadRequestException(
-        `Expresión cron inválida: ${message}`,
-      );
+      throw new BadRequestException(`Expresión cron inválida: ${message}`);
     }
   }
 
@@ -181,10 +179,7 @@ export class SchedulerService {
         await this.processSchedule(schedule);
       } catch (error: unknown) {
         const stack = error instanceof Error ? error.stack : '';
-        this.logger.error(
-          `Failed to process schedule ${schedule.id}:`,
-          stack,
-        );
+        this.logger.error(`Failed to process schedule ${schedule.id}:`, stack);
       }
     }
   }
@@ -320,7 +315,8 @@ export class SchedulerService {
       });
     } catch (err: unknown) {
       const errorInstance = err instanceof Error ? err : new Error(String(err));
-      errorMessage = errorInstance.message || 'Error desconocido durante la ejecución';
+      errorMessage =
+        errorInstance.message || 'Error desconocido durante la ejecución';
       this.logger.error(
         `Failed to run scheduled query ${schedule.id}:`,
         errorInstance.stack || '',
@@ -392,7 +388,15 @@ export class SchedulerService {
       columns.forEach((col) => {
         const val = (row as Record<string, unknown>)[col];
         const formattedVal =
-          val === null || val === undefined ? 'NULL' : String(val);
+          val === null || val === undefined
+            ? 'NULL'
+            : val instanceof Date
+              ? val.toISOString()
+              : typeof val === 'string'
+                ? val
+                : typeof val === 'number' || typeof val === 'boolean'
+                  ? String(val)
+                  : JSON.stringify(val);
         html += `<td style="border: 1px solid #23251d; padding: 6px 8px; text-align: left;">${formattedVal}</td>`;
       });
       html += `</tr>`;
@@ -421,7 +425,15 @@ export class SchedulerService {
           if (val === null || val === undefined) {
             return '';
           }
-          return `"${String(val).replace(/"/g, '""')}"`;
+          const strVal =
+            val instanceof Date
+              ? val.toISOString()
+              : typeof val === 'string'
+                ? val
+                : typeof val === 'number' || typeof val === 'boolean'
+                  ? String(val)
+                  : JSON.stringify(val);
+          return `"${strVal.replace(/"/g, '""')}"`;
         })
         .join(',');
     });

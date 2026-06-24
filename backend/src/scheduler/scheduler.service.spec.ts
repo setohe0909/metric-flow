@@ -8,7 +8,6 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 
 describe('SchedulerService', () => {
   let service: SchedulerService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     query: {
@@ -54,7 +53,6 @@ describe('SchedulerService', () => {
     }).compile();
 
     service = module.get<SchedulerService>(SchedulerService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
@@ -144,7 +142,10 @@ describe('SchedulerService', () => {
         { id: 1, name: 'Alice', value: 100 },
         { id: 2, name: 'Bob "The Builder"', value: 200 },
       ];
-      const csv = (service as any).formatCsv(columns, rows);
+      const serviceWithHelpers = service as unknown as {
+        formatCsv(columns: string[], rows: Record<string, unknown>[]): string;
+      };
+      const csv = serviceWithHelpers.formatCsv(columns, rows);
       expect(csv).toContain('"id","name","value"');
       expect(csv).toContain('"1","Alice","100"');
       expect(csv).toContain('"2","Bob ""The Builder""","200"');
@@ -153,7 +154,13 @@ describe('SchedulerService', () => {
     it('should format columns and rows to HTML table', () => {
       const columns = ['name', 'age'];
       const rows = [{ name: 'Charlie', age: 30 }];
-      const html = (service as any).formatHtmlTable(columns, rows);
+      const serviceWithHelpers = service as unknown as {
+        formatHtmlTable(
+          columns: string[],
+          rows: Record<string, unknown>[],
+        ): string;
+      };
+      const html = serviceWithHelpers.formatHtmlTable(columns, rows);
       expect(html).toContain('<table');
       expect(html).toContain('name');
       expect(html).toContain('age');
