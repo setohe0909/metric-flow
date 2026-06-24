@@ -46,3 +46,7 @@ coverage/
 
 # Package lock (optional – keep if you want reproducible installs)
 # package-lock.json
+
+# SDD metadata
+.atl/
+

@@ -8,6 +8,7 @@ import type { QueryRunResponse } from '@/features/queries/hooks/use-queries';
 import { ResultsTable } from '@/features/queries/components/results-table';
 import { apiClient } from '@/lib/api-client';
 import { Play, Save, Loader2, AlertTriangle, CheckCircle, Database, Terminal, Clock, Rows, Trash2, Sliders, X, FileText, EyeOff } from 'lucide-react';
+import { ScheduleModal } from '@/features/queries/components/schedule-modal';
 
 export default function QueryEditor() {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export default function QueryEditor() {
   const [saveName, setSaveName] = useState('');
   const [saveDescription, setSaveDescription] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   // Estados de Asociación de Widget
   const [showWidgetModal, setShowWidgetModal] = useState(false);
@@ -254,18 +256,27 @@ export default function QueryEditor() {
             </div>
 
             {activeQueryId && (
-              <button
-                onClick={() => {
-                  if (dashboards.length > 0) {
-                    setSelectedDashboardId(dashboards[0].id);
-                  }
-                  setShowWidgetModal(true);
-                }}
-                disabled={!selectedDsId || isRunning}
-                className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
-              >
-                <Sliders className="h-3.5 w-3.5" /> Crear Widget
-              </button>
+              <>
+                <button
+                  onClick={() => setShowScheduleModal(true)}
+                  disabled={!selectedDsId || isRunning}
+                  className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
+                >
+                  <Clock className="h-3.5 w-3.5" /> Programar Reporte
+                </button>
+                <button
+                  onClick={() => {
+                    if (dashboards.length > 0) {
+                      setSelectedDashboardId(dashboards[0].id);
+                    }
+                    setShowWidgetModal(true);
+                  }}
+                  disabled={!selectedDsId || isRunning}
+                  className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
+                >
+                  <Sliders className="h-3.5 w-3.5" /> Crear Widget
+                </button>
+              </>
             )}
 
             <button
@@ -730,6 +741,16 @@ export default function QueryEditor() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal para Programación de Reportes */}
+      {activeQueryId && (
+        <ScheduleModal
+          isOpen={showScheduleModal}
+          onClose={() => setShowScheduleModal(false)}
+          queryId={activeQueryId}
+          queryName={savedQueries.find((q) => q.id === activeQueryId)?.name || ''}
+        />
       )}
     </div>
   );

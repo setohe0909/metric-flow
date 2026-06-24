@@ -81,7 +81,6 @@ export class CreateDatasourceDto {
   connectionSettings: ConnectionSettingsDto;
 }
 
-
 /** Política de acceso para un rol específico (admin o viewer) */
 export class RolePolicyDto {
   /**

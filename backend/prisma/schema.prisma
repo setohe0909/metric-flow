@@ -32,11 +32,12 @@ model Organization {
   slug        String       @unique
   createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz
-  memberships Membership[]
-  datasources Datasource[]
-  queries     Query[]
-  dashboards  Dashboard[]
-  executions  Execution[]
+  memberships      Membership[]
+  datasources      Datasource[]
+  queries          Query[]
+  dashboards       Dashboard[]
+  executions       Execution[]
+  scheduledQueries ScheduledQuery[]
 
   @@map("organizations")
 }
@@ -89,11 +90,12 @@ model Query {
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  datasource     Datasource?  @relation(fields: [datasourceId], references: [id], onDelete: SetNull)
-  createdByUser  User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
-  widgets        Widget[]
-  executions     Execution[]
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  datasource       Datasource?      @relation(fields: [datasourceId], references: [id], onDelete: SetNull)
+  createdByUser    User?            @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  widgets          Widget[]
+  executions       Execution[]
+  scheduledQueries ScheduledQuery[]
 
   @@map("queries")
 }
@@ -153,4 +155,39 @@ model Execution {
   user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("executions")
+}
+
+model ScheduledQuery {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @map("organization_id") @db.Uuid
+  queryId        String            @map("query_id") @db.Uuid
+  name           String
+  cronExpression String            @map("cron_expression")
+  recipients     String[]          // Array of emails
+  enabled        Boolean           @default(true)
+  subject        String?           // Custom email subject
+  format         String            @default("csv") // csv, html, json
+  lastRunAt      DateTime?         @map("last_run_at") @db.Timestamptz
+  nextRunAt      DateTime?         @map("next_run_at") @db.Timestamptz
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  query          Query             @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  histories      ScheduleHistory[]
+
+  @@map("scheduled_queries")
+}
+
+model ScheduleHistory {
+  id               String         @id @default(uuid()) @db.Uuid
+  scheduledQueryId String         @map("scheduled_query_id") @db.Uuid
+  executedAt       DateTime       @default(now()) @map("executed_at") @db.Timestamptz
+  status           String         // success, error
+  errorMessage     String?        @map("error_message")
+  recipientsSent   String[]       @map("recipients_sent")
+
+  scheduledQuery   ScheduledQuery @relation(fields: [scheduledQueryId], references: [id], onDelete: Cascade)
+
+  @@map("schedule_histories")
 }

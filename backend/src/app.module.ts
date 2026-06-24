@@ -10,9 +10,12 @@ import { QueriesModule } from './queries/queries.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { WidgetModule } from './widget/widget.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     EncryptionModule,
@@ -22,6 +25,7 @@ import { WidgetModule } from './widget/widget.module';
     OrganizationsModule,
     DashboardModule,
     WidgetModule,
+    SchedulerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

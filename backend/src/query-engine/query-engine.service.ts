@@ -401,15 +401,16 @@ export class QueryEngineService implements OnModuleDestroy {
     try {
       credentials = JSON.parse(settings.serviceAccountJson);
     } catch {
-      throw new BadRequestException(
-        'serviceAccountJson no es un JSON válido.',
-      );
+      throw new BadRequestException('serviceAccountJson no es un JSON válido.');
     }
 
     const bq = new BigQuery({ projectId: settings.projectId, credentials });
 
     try {
-      const [job] = await bq.createQueryJob({ query: sql, useLegacySql: false });
+      const [job] = await bq.createQueryJob({
+        query: sql,
+        useLegacySql: false,
+      });
       const [rows] = await job.getQueryResults();
 
       const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -448,7 +449,9 @@ export class QueryEngineService implements OnModuleDestroy {
       connection.connect((err, conn) => {
         if (err) {
           return reject(
-            new BadRequestException(`Snowflake Connection Error: ${err.message}`),
+            new BadRequestException(
+              `Snowflake Connection Error: ${err.message}`,
+            ),
           );
         }
 
@@ -464,7 +467,9 @@ export class QueryEngineService implements OnModuleDestroy {
 
             if (execErr) {
               return reject(
-                new BadRequestException(`Snowflake SQL Error: ${execErr.message}`),
+                new BadRequestException(
+                  `Snowflake SQL Error: ${execErr.message}`,
+                ),
               );
             }
 

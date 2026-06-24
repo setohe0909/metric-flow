@@ -186,7 +186,9 @@ export class DatasourceService {
 
     // Si el objeto resultante está vacío, limpiar las políticas usando Prisma.JsonNull
     const finalPolicies: Prisma.InputJsonValue | typeof Prisma.JsonNull =
-      Object.keys(policies).length > 0 ? (policies as Prisma.InputJsonValue) : Prisma.JsonNull;
+      Object.keys(policies).length > 0
+        ? (policies as Prisma.InputJsonValue)
+        : Prisma.JsonNull;
 
     const updated = await this.prisma.datasource.update({
       where: { id: datasourceId },
