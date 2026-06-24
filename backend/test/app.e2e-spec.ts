@@ -23,6 +23,20 @@ describe('AppController (e2e)', () => {
       .expect('Hello World!');
   });
 
+  it('/setup/status (GET) reports the persisted installation state', () => {
+    return request(app.getHttpServer())
+      .get('/setup/status')
+      .expect(200)
+      .expect({ initialized: true });
+  });
+
+  it('/auth/register (POST) is no longer exposed', () => {
+    return request(app.getHttpServer())
+      .post('/auth/register')
+      .send({})
+      .expect(404);
+  });
+
   afterEach(async () => {
     await app.close();
   });

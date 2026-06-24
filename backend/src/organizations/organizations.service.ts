@@ -118,6 +118,12 @@ export class OrganizationsService {
       );
     }
 
+    if (membership.userId === currentUserId) {
+      throw new BadRequestException(
+        'No puedes eliminar tu propia membresía.',
+      );
+    }
+
     if (membership.role === 'owner') {
       const ownerCount = await this.prisma.membership.count({
         where: { organizationId: orgId, role: 'owner' },
@@ -134,41 +140,5 @@ export class OrganizationsService {
     });
 
     return { success: true };
-  }
-
-  async createOrg(userId: string, name: string) {
-    let slug = this.slugify(name);
-    const existingOrg = await this.prisma.organization.findUnique({
-      where: { slug },
-    });
-
-    if (existingOrg) {
-      slug = `${slug}-${Math.random().toString(36).substring(2, 6)}`;
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      const newOrg = await tx.organization.create({
-        data: { name, slug },
-      });
-
-      await tx.membership.create({
-        data: {
-          userId,
-          organizationId: newOrg.id,
-          role: 'owner',
-        },
-      });
-
-      return newOrg;
-    });
-  }
-
-  private slugify(text: string): string {
-    return text
-      .toString()
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
   }
 }

@@ -22,6 +22,7 @@ model User {
   queries      Query[]
   dashboards   Dashboard[]
   executions   Execution[]
+  installation Installation? @relation("InstallationAdministrator")
 
   @@map("users")
 }
@@ -38,8 +39,21 @@ model Organization {
   dashboards       Dashboard[]
   executions       Execution[]
   scheduledQueries ScheduledQuery[]
+  installation     Installation?
 
   @@map("organizations")
+}
+
+model Installation {
+  id                  Int       @id
+  initializedAt       DateTime  @default(now()) @map("initialized_at") @db.Timestamptz
+  organizationId      String?   @unique @map("organization_id") @db.Uuid
+  administratorUserId String?   @unique @map("administrator_user_id") @db.Uuid
+
+  organization      Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  administratorUser User?         @relation("InstallationAdministrator", fields: [administratorUserId], references: [id], onDelete: SetNull)
+
+  @@map("installations")
 }
 
 enum Role {

@@ -14,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { OrganizationsService } from './organizations.service';
 import {
-  CreateOrganizationDto,
   UpdateOrganizationDto,
   InviteMemberDto,
 } from './dto/organizations.dto';
@@ -24,13 +23,6 @@ import { TenantGuard } from '../auth/guards/tenant.guard';
 @Controller('organizations')
 export class OrganizationsController {
   constructor(private readonly orgsService: OrganizationsService) {}
-
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  async create(@Request() req, @Body() dto: CreateOrganizationDto) {
-    return this.orgsService.createOrg(req.user.id, dto.name);
-  }
 
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get('active')

@@ -12,6 +12,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { WidgetModule } from './widget/widget.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { SetupModule } from './setup/setup.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     DashboardModule,
     WidgetModule,
     SchedulerModule,
+    SetupModule,
   ],
   controllers: [AppController],
   providers: [AppService],
