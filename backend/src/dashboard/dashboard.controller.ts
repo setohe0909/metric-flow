@@ -36,7 +36,7 @@ export class DashboardController {
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get()
   async findAll(@Request() req) {
-    return this.dashboardService.findAll(req.orgId);
+    return this.dashboardService.findAll(req.orgId, req.userRole);
   }
 
   // Rutas públicas (Sin Token JWT ni TenantGuard)
@@ -57,7 +57,38 @@ export class DashboardController {
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Get(':id')
   async findOne(@Request() req, @Param('id') id: string) {
-    return this.dashboardService.findOne(req.orgId, id);
+    return this.dashboardService.findOne(req.orgId, id, req.userRole);
+  }
+
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Get(':id/widgets/:widgetId/data')
+  getWidgetData(
+    @Request() req,
+    @Param('id') id: string,
+    @Param('widgetId') widgetId: string,
+  ) {
+    return this.dashboardService.getWidgetData(
+      req.orgId,
+      id,
+      widgetId,
+      req.user.id,
+      req.userRole,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, TenantGuard)
+  @Put(':id/published')
+  setPublished(
+    @Request() req,
+    @Param('id') id: string,
+    @Body('published') published: boolean,
+  ) {
+    if (req.userRole === 'READER') {
+      throw new ForbiddenException(
+        'Los lectores no pueden publicar dashboards.',
+      );
+    }
+    return this.dashboardService.setPublished(req.orgId, id, published);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)

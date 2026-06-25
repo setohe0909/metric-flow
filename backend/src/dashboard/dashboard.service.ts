@@ -4,6 +4,7 @@ import { CreateDashboardDto, UpdateDashboardDto } from './dto/dashboard.dto';
 import { DatasourceService } from '../datasource/datasource.service';
 import { QueryEngineService } from '../query-engine/query-engine.service';
 import * as crypto from 'crypto';
+import { QueriesService } from '../queries/queries.service';
 
 @Injectable()
 export class DashboardService {
@@ -11,6 +12,7 @@ export class DashboardService {
     private readonly prisma: PrismaService,
     private readonly datasourceService: DatasourceService,
     private readonly queryEngine: QueryEngineService,
+    private readonly queriesService: QueriesService,
   ) {}
 
   async create(orgId: string, userId: string, dto: CreateDashboardDto) {
@@ -24,16 +26,24 @@ export class DashboardService {
     });
   }
 
-  async findAll(orgId: string) {
+  async findAll(orgId: string, role: string) {
     return this.prisma.dashboard.findMany({
-      where: { organizationId: orgId },
+      where: {
+        organizationId: orgId,
+        ...(role === 'READER' ? { publishedAt: { not: null } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(orgId: string, id: string) {
+  async findOne(orgId: string, id: string, role = 'ADMIN') {
+    const where = {
+      id,
+      organizationId: orgId,
+      ...(role === 'READER' ? { publishedAt: { not: null } } : {}),
+    };
     const dashboard = await this.prisma.dashboard.findFirst({
-      where: { id, organizationId: orgId },
+      where,
       include: {
         widgets: {
           include: {
@@ -41,8 +51,9 @@ export class DashboardService {
               select: {
                 id: true,
                 name: true,
-                querySql: true,
-                datasourceId: true,
+                ...(role === 'READER'
+                  ? {}
+                  : { querySql: true, datasourceId: true }),
               },
             },
           },
@@ -56,6 +67,36 @@ export class DashboardService {
     }
 
     return dashboard;
+  }
+
+  async setPublished(orgId: string, id: string, published: boolean) {
+    await this.findOne(orgId, id);
+    return this.prisma.dashboard.update({
+      where: { id },
+      data: { publishedAt: published ? new Date() : null },
+    });
+  }
+
+  async getWidgetData(
+    orgId: string,
+    dashboardId: string,
+    widgetId: string,
+    userId: string,
+    role: string,
+  ) {
+    await this.findOne(orgId, dashboardId, role);
+    const widget = await this.prisma.widget.findFirst({
+      where: { id: widgetId, dashboardId },
+      include: { query: true },
+    });
+    if (!widget?.query?.datasourceId) {
+      throw new BadRequestException('Widget o consulta no encontrada.');
+    }
+
+    return this.queriesService.runRaw(orgId, userId, role, {
+      datasourceId: widget.query.datasourceId,
+      querySql: widget.query.querySql,
+    });
   }
 
   async update(orgId: string, id: string, dto: UpdateDashboardDto) {

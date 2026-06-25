@@ -123,6 +123,7 @@ model Dashboard {
   name           String
   description    String?
   isPublic       Boolean      @default(false) @map("is_public")
+  publishedAt    DateTime?    @map("published_at") @db.Timestamptz
   shareToken     String?      @unique @map("share_token")
   createdByUserId String?      @map("created_by_id") @db.Uuid
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
