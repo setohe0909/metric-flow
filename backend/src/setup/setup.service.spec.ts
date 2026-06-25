@@ -81,12 +81,13 @@ describe('SetupService', () => {
         email: 'admin@example.com',
         firstName: 'Ada',
         lastName: 'Lovelace',
+        mustChangePassword: false,
       },
       organization: {
         id: 'org-1',
         name: 'Analytics Team',
         slug: 'analytics-team',
-        role: 'owner',
+        role: 'ADMIN',
       },
     });
 

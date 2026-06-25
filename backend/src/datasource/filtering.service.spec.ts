@@ -17,28 +17,28 @@ describe('FilteringService', () => {
   describe('getPolicyForRole', () => {
     it('should return open policy for owner regardless of accessPolicies', () => {
       const policies = {
-        owner: { allowedColumns: ['id'], rowFilter: "region = 'US'" } as any,
-        viewer: { allowedColumns: ['id'], rowFilter: "region = 'LATAM'" },
+        ADMIN: { allowedColumns: ['id'], rowFilter: "region = 'US'" } as any,
+        READER: { allowedColumns: ['id'], rowFilter: "region = 'LATAM'" },
       };
-      const result = service.getPolicyForRole(policies, 'owner');
+      const result = service.getPolicyForRole(policies, 'ADMIN');
       expect(result).toEqual({ allowedColumns: null, rowFilter: null });
     });
 
     it('should return open policy when accessPolicies is null', () => {
-      const result = service.getPolicyForRole(null, 'viewer');
+      const result = service.getPolicyForRole(null, 'READER');
       expect(result).toEqual({ allowedColumns: null, rowFilter: null });
     });
 
     it('should return open policy when accessPolicies is undefined', () => {
-      const result = service.getPolicyForRole(undefined, 'admin');
+      const result = service.getPolicyForRole(undefined, 'EDITOR');
       expect(result).toEqual({ allowedColumns: null, rowFilter: null });
     });
 
     it('should return viewer policy when defined', () => {
       const policies = {
-        viewer: { allowedColumns: ['id', 'name'], rowFilter: "country = 'CO'" },
+        READER: { allowedColumns: ['id', 'name'], rowFilter: "country = 'CO'" },
       };
-      const result = service.getPolicyForRole(policies, 'viewer');
+      const result = service.getPolicyForRole(policies, 'READER');
       expect(result).toEqual({
         allowedColumns: ['id', 'name'],
         rowFilter: "country = 'CO'",
@@ -47,9 +47,9 @@ describe('FilteringService', () => {
 
     it('should return admin policy when defined', () => {
       const policies = {
-        admin: { allowedColumns: null, rowFilter: 'deleted_at IS NULL' },
+        EDITOR: { allowedColumns: null, rowFilter: 'deleted_at IS NULL' },
       };
-      const result = service.getPolicyForRole(policies, 'admin');
+      const result = service.getPolicyForRole(policies, 'EDITOR');
       expect(result).toEqual({
         allowedColumns: null,
         rowFilter: 'deleted_at IS NULL',
@@ -58,17 +58,17 @@ describe('FilteringService', () => {
 
     it('should return open policy for admin when no admin policy is defined', () => {
       const policies = {
-        viewer: { allowedColumns: ['id'], rowFilter: "region = 'US'" },
+        READER: { allowedColumns: ['id'], rowFilter: "region = 'US'" },
       };
-      const result = service.getPolicyForRole(policies, 'admin');
+      const result = service.getPolicyForRole(policies, 'EDITOR');
       expect(result).toEqual({ allowedColumns: null, rowFilter: null });
     });
 
     it('should handle policy with null allowedColumns (column restriction disabled)', () => {
       const policies = {
-        viewer: { allowedColumns: null, rowFilter: "region = 'LATAM'" },
+        READER: { allowedColumns: null, rowFilter: "region = 'LATAM'" },
       };
-      const result = service.getPolicyForRole(policies, 'viewer');
+      const result = service.getPolicyForRole(policies, 'READER');
       expect(result.allowedColumns).toBeNull();
       expect(result.rowFilter).toBe("region = 'LATAM'");
     });
@@ -183,12 +183,12 @@ describe('FilteringService', () => {
     it('should return unmodified sql and isFiltered=false for owner', () => {
       const sql = 'SELECT * FROM orders';
       const policies = {
-        viewer: { allowedColumns: ['id'], rowFilter: "status = 'paid'" },
+        READER: { allowedColumns: ['id'], rowFilter: "status = 'paid'" },
       };
       const { wrappedSql, isFiltered } = service.resolveForRole(
         sql,
         policies,
-        'owner',
+        'ADMIN',
       );
       expect(wrappedSql).toBe(sql);
       expect(isFiltered).toBe(false);
@@ -197,12 +197,12 @@ describe('FilteringService', () => {
     it('should wrap sql and return isFiltered=true for viewer with rowFilter', () => {
       const sql = 'SELECT * FROM orders';
       const policies = {
-        viewer: { allowedColumns: null, rowFilter: "status = 'paid'" },
+        READER: { allowedColumns: null, rowFilter: "status = 'paid'" },
       };
       const { wrappedSql, isFiltered, policy } = service.resolveForRole(
         sql,
         policies,
-        'viewer',
+        'READER',
       );
       expect(wrappedSql).toContain("status = 'paid'");
       expect(isFiltered).toBe(true);
@@ -212,14 +212,14 @@ describe('FilteringService', () => {
     it('should return isFiltered=true when only allowedColumns is restricted', () => {
       const sql = 'SELECT * FROM users';
       const policies = {
-        admin: { allowedColumns: ['id', 'email'], rowFilter: null },
+        EDITOR: { allowedColumns: ['id', 'email'], rowFilter: null },
       };
-      const { isFiltered } = service.resolveForRole(sql, policies, 'admin');
+      const { isFiltered } = service.resolveForRole(sql, policies, 'EDITOR');
       expect(isFiltered).toBe(true);
     });
 
     it('should return isFiltered=false when no policies are configured', () => {
-      const { isFiltered } = service.resolveForRole('SELECT 1', null, 'viewer');
+      const { isFiltered } = service.resolveForRole('SELECT 1', null, 'READER');
       expect(isFiltered).toBe(false);
     });
   });

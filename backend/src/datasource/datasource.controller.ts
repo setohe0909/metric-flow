@@ -65,7 +65,7 @@ export class DatasourceController {
   constructor(private readonly datasourceService: DatasourceService) {}
 
   @Post()
-  @Roles('owner', 'admin')
+  @Roles('ADMIN', 'EDITOR')
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req, @Body() dto: CreateDatasourceDto) {
     return this.datasourceService.create(req.orgId, dto);
@@ -77,7 +77,7 @@ export class DatasourceController {
   }
 
   @Post('upload-file')
-  @Roles('owner', 'admin')
+  @Roles('ADMIN', 'EDITOR')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: multerStorage,
@@ -101,7 +101,7 @@ export class DatasourceController {
   }
 
   @Post('test')
-  @Roles('owner', 'admin')
+  @Roles('ADMIN', 'EDITOR')
   @HttpCode(HttpStatus.OK)
   async testConnection(
     @Request() req,
@@ -111,13 +111,13 @@ export class DatasourceController {
   }
 
   @Get(':id/schema')
-  @Roles('owner', 'admin')
+  @Roles('ADMIN', 'EDITOR')
   async getSchema(@Request() req, @Param('id') id: string) {
     return this.datasourceService.getSchema(req.orgId, id);
   }
 
   @Put(':id/policies')
-  @Roles('owner')
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.OK)
   async updatePolicies(
     @Request() req,
@@ -133,7 +133,7 @@ export class DatasourceController {
   }
 
   @Delete(':id')
-  @Roles('owner', 'admin')
+  @Roles('ADMIN', 'EDITOR')
   async remove(@Request() req, @Param('id') id: string) {
     return this.datasourceService.remove(req.orgId, id);
   }

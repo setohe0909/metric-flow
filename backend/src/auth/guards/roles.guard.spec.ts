@@ -4,7 +4,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from './roles.guard';
 
 class GuardTestController {
-  @Roles('owner', 'admin')
+  @Roles('ADMIN', 'EDITOR')
   restricted() {}
 
   unrestricted() {}
@@ -31,18 +31,18 @@ describe('RolesGuard', () => {
   }
 
   it('allows routes without role metadata', () => {
-    expect(guard.canActivate(createContext('unrestricted', 'viewer'))).toBe(
+    expect(guard.canActivate(createContext('unrestricted', 'READER'))).toBe(
       true,
     );
   });
 
-  it.each(['owner', 'admin'])('allows the required %s role', (role) => {
+  it.each(['ADMIN', 'EDITOR'])('allows the required %s role', (role) => {
     expect(guard.canActivate(createContext('restricted', role))).toBe(true);
   });
 
   it('rejects a viewer from an owner/admin route', () => {
     expect(() =>
-      guard.canActivate(createContext('restricted', 'viewer')),
+      guard.canActivate(createContext('restricted', 'READER')),
     ).toThrow(ForbiddenException);
   });
 

@@ -26,7 +26,7 @@ export class QueriesController {
   async runRawQuery(@Request() req, @Body() dto: RunQueryDto) {
     // Viewers pueden ejecutar queries guardadas a través de widgets,
     // pero el SQL libre sigue restringido a owner y admin.
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para ejecutar SQL libre.',
       );
@@ -43,7 +43,7 @@ export class QueriesController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req, @Body() dto: SaveQueryDto) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no pueden guardar consultas.',
       );
@@ -63,7 +63,7 @@ export class QueriesController {
 
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: string) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no pueden eliminar consultas.',
       );

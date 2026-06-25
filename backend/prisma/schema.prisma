@@ -16,6 +16,9 @@ model User {
   passwordHash String       @map("password_hash")
   firstName    String?      @map("first_name")
   lastName     String?      @map("last_name")
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+  passwordVersion    Int     @default(0) @map("password_version")
+  disabledAt         DateTime? @map("disabled_at") @db.Timestamptz
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   memberships  Membership[]
@@ -57,9 +60,9 @@ model Installation {
 }
 
 enum Role {
-  owner
-  admin
-  viewer
+  ADMIN
+  EDITOR
+  READER
 }
 
 model Membership {
@@ -83,7 +86,7 @@ model Datasource {
   name               String
   type               String // postgres, mysql, sqlite, csv
   connectionSettings String       @map("connection_settings") // AES-256 Encrypted JSON
-  accessPolicies     Json?        @map("access_policies") // { viewer: { allowedColumns, rowFilter }, admin: { ... } }
+  accessPolicies     Json?        @map("access_policies") // { READER: { allowedColumns, rowFilter }, EDITOR: { ... } }
   createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 

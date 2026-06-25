@@ -81,7 +81,7 @@ export class CreateDatasourceDto {
   connectionSettings: ConnectionSettingsDto;
 }
 
-/** Política de acceso para un rol específico (admin o viewer) */
+/** Política de acceso para un rol específico (EDITOR o READER) */
 export class RolePolicyDto {
   /**
    * Lista de columnas permitidas para este rol.
@@ -109,10 +109,10 @@ export class UpdateAccessPoliciesDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => RolePolicyDto)
-  viewer?: RolePolicyDto;
+  READER?: RolePolicyDto;
 
   @IsOptional()
   @ValidateNested()
   @Type(() => RolePolicyDto)
-  admin?: RolePolicyDto;
+  EDITOR?: RolePolicyDto;
 }

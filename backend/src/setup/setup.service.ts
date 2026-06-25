@@ -57,7 +57,7 @@ export class SetupService {
             data: {
               userId: user.id,
               organizationId: organization.id,
-              role: 'owner',
+              role: 'ADMIN',
             },
           });
 
@@ -78,7 +78,8 @@ export class SetupService {
         sub: user.id,
         email: user.email,
         activeOrgId: organization.id,
-        role: 'owner',
+        role: 'ADMIN',
+        passwordVersion: user.passwordVersion,
       });
 
       return {
@@ -88,12 +89,13 @@ export class SetupService {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          mustChangePassword: false,
         },
         organization: {
           id: organization.id,
           name: organization.name,
           slug: organization.slug,
-          role: 'owner',
+          role: 'ADMIN',
         },
       };
     } catch (error) {

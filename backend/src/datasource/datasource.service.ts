@@ -145,7 +145,7 @@ export class DatasourceService {
 
   /**
    * Actualiza las políticas de acceso por rol de un datasource.
-   * Solo el owner puede modificar las políticas.
+   * Solo ADMIN puede modificar las políticas.
    */
   async updatePolicies(
     orgId: string,
@@ -153,9 +153,9 @@ export class DatasourceService {
     userRole: string,
     dto: UpdateAccessPoliciesDto,
   ) {
-    if (userRole !== 'owner') {
+    if (userRole !== 'ADMIN') {
       throw new ForbiddenException(
-        'Solo el owner puede configurar políticas de acceso',
+        'Solo un administrador puede configurar políticas de acceso',
       );
     }
 
@@ -170,17 +170,17 @@ export class DatasourceService {
     // Construir el objeto de políticas normalizado
     const policies: AccessPolicies = {};
 
-    if (dto.viewer !== undefined) {
-      policies.viewer = {
-        allowedColumns: dto.viewer.allowedColumns ?? null,
-        rowFilter: dto.viewer.rowFilter ?? null,
+    if (dto.READER !== undefined) {
+      policies.READER = {
+        allowedColumns: dto.READER.allowedColumns ?? null,
+        rowFilter: dto.READER.rowFilter ?? null,
       };
     }
 
-    if (dto.admin !== undefined) {
-      policies.admin = {
-        allowedColumns: dto.admin.allowedColumns ?? null,
-        rowFilter: dto.admin.rowFilter ?? null,
+    if (dto.EDITOR !== undefined) {
+      policies.EDITOR = {
+        allowedColumns: dto.EDITOR.allowedColumns ?? null,
+        rowFilter: dto.EDITOR.rowFilter ?? null,
       };
     }
 

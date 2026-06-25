@@ -9,6 +9,7 @@ export interface JwtPayload {
   email: string;
   activeOrgId: string;
   role: string;
+  passwordVersion: number;
 }
 
 @Injectable()
@@ -30,11 +31,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         email: true,
         firstName: true,
         lastName: true,
+        disabledAt: true,
+        mustChangePassword: true,
+        passwordVersion: true,
       },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
+    if (
+      !user ||
+      user.disabledAt ||
+      payload.passwordVersion !== user.passwordVersion
+    ) {
+      throw new UnauthorizedException('Sesión inválida o revocada');
     }
 
     // Retorna el payload del usuario autenticado que estará disponible en req.user
@@ -45,6 +53,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       lastName: user.lastName,
       activeOrgId: payload.activeOrgId,
       role: payload.role,
+      mustChangePassword: user.mustChangePassword,
+      passwordVersion: user.passwordVersion,
     };
   }
 }

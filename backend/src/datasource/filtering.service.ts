@@ -9,8 +9,8 @@ export interface RolePolicy {
 }
 
 export interface AccessPolicies {
-  viewer?: RolePolicy;
-  admin?: RolePolicy;
+  READER?: RolePolicy;
+  EDITOR?: RolePolicy;
 }
 
 export interface QueryResult {
@@ -28,22 +28,22 @@ export interface FilterMeta {
   };
 }
 
-/** Policy with no restrictions — used for owner and when no policy is defined. */
+/** Policy with no restrictions — used for ADMIN and when no policy is defined. */
 const OPEN_POLICY: RolePolicy = { allowedColumns: null, rowFilter: null };
 
 @Injectable()
 export class FilteringService {
   /**
    * Resolves the effective policy for a given role.
-   * - `owner` always receives OPEN_POLICY (no restrictions).
-   * - `admin` / `viewer`: reads from accessPolicies[role]; falls back to OPEN_POLICY
+   * - `ADMIN` always receives OPEN_POLICY (no restrictions).
+   * - `EDITOR` / `READER`: reads from accessPolicies[role]; falls back to OPEN_POLICY
    *   if the datasource has no policy configured for that role.
    */
   getPolicyForRole(
     accessPolicies: AccessPolicies | null | undefined,
     role: string,
   ): RolePolicy {
-    if (role === 'owner' || !accessPolicies) {
+    if (role === 'ADMIN' || !accessPolicies) {
       return OPEN_POLICY;
     }
 

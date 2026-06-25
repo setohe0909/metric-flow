@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class OrganizationsService {
@@ -19,6 +20,8 @@ export class OrganizationsService {
                 email: true,
                 firstName: true,
                 lastName: true,
+                disabledAt: true,
+                mustChangePassword: true,
               },
             },
           },
@@ -50,6 +53,8 @@ export class OrganizationsService {
             email: true,
             firstName: true,
             lastName: true,
+            disabledAt: true,
+            mustChangePassword: true,
           },
         },
       },
@@ -58,18 +63,20 @@ export class OrganizationsService {
   }
 
   async inviteMember(orgId: string, email: string, role: Role) {
+    let temporaryPassword: string | null = null;
     let user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
 
     if (!user) {
-      // Crear usuario placeholder para que pueda ingresar
-      const tempPass = await bcrypt.hash('QueryLensTempPass123!', 10);
+      temporaryPassword = this.generateTemporaryPassword();
+      const tempPass = await bcrypt.hash(temporaryPassword, 12);
       user = await this.prisma.user.create({
         data: {
           email: email.toLowerCase().trim(),
           passwordHash: tempPass,
           firstName: email.split('@')[0],
+          mustChangePassword: true,
         },
       });
     }
@@ -84,7 +91,7 @@ export class OrganizationsService {
       );
     }
 
-    return this.prisma.membership.create({
+    const membership = await this.prisma.membership.create({
       data: {
         userId: user.id,
         organizationId: orgId,
@@ -97,10 +104,85 @@ export class OrganizationsService {
             email: true,
             firstName: true,
             lastName: true,
+            disabledAt: true,
+            mustChangePassword: true,
           },
         },
       },
     });
+
+    return {
+      ...membership,
+      temporaryPassword,
+    };
+  }
+
+  async updateMemberRole(
+    orgId: string,
+    membershipId: string,
+    currentUserId: string,
+    role: Role,
+  ) {
+    const membership = await this.findMembership(orgId, membershipId);
+    if (membership.userId === currentUserId && role !== 'ADMIN') {
+      throw new BadRequestException('No puedes degradar tu propio rol.');
+    }
+    await this.assertAdminCanBeChanged(orgId, membership, role !== 'ADMIN');
+
+    return this.prisma.membership.update({
+      where: { id: membershipId },
+      data: { role },
+      include: { user: true },
+    });
+  }
+
+  async resetMemberPassword(
+    orgId: string,
+    membershipId: string,
+    currentUserId: string,
+  ) {
+    const membership = await this.findMembership(orgId, membershipId);
+    if (membership.userId === currentUserId) {
+      throw new BadRequestException(
+        'Usa el cambio de contraseña para tu propia cuenta.',
+      );
+    }
+
+    const temporaryPassword = this.generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+    await this.prisma.user.update({
+      where: { id: membership.userId },
+      data: {
+        passwordHash,
+        mustChangePassword: true,
+        passwordVersion: { increment: 1 },
+      },
+    });
+
+    return { temporaryPassword };
+  }
+
+  async setMemberDisabled(
+    orgId: string,
+    membershipId: string,
+    currentUserId: string,
+    disabled: boolean,
+  ) {
+    const membership = await this.findMembership(orgId, membershipId);
+    if (membership.userId === currentUserId) {
+      throw new BadRequestException('No puedes desactivar tu propia cuenta.');
+    }
+    await this.assertAdminCanBeChanged(orgId, membership, disabled);
+
+    await this.prisma.user.update({
+      where: { id: membership.userId },
+      data: {
+        disabledAt: disabled ? new Date() : null,
+        passwordVersion: { increment: 1 },
+      },
+    });
+
+    return { disabled };
   }
 
   async removeMember(
@@ -108,37 +190,56 @@ export class OrganizationsService {
     membershipId: string,
     currentUserId: string,
   ) {
-    const membership = await this.prisma.membership.findFirst({
-      where: { id: membershipId, organizationId: orgId },
-    });
-
-    if (!membership) {
-      throw new BadRequestException(
-        'Miembro no encontrado en esta organización.',
-      );
-    }
+    const membership = await this.findMembership(orgId, membershipId);
 
     if (membership.userId === currentUserId) {
-      throw new BadRequestException(
-        'No puedes eliminar tu propia membresía.',
-      );
+      throw new BadRequestException('No puedes eliminar tu propia membresía.');
     }
 
-    if (membership.role === 'owner') {
-      const ownerCount = await this.prisma.membership.count({
-        where: { organizationId: orgId, role: 'owner' },
-      });
-      if (ownerCount <= 1) {
-        throw new BadRequestException(
-          'No puedes eliminar al único propietario de la organización.',
-        );
-      }
-    }
+    await this.assertAdminCanBeChanged(orgId, membership, true);
 
     await this.prisma.membership.delete({
       where: { id: membershipId },
     });
 
     return { success: true };
+  }
+
+  private async findMembership(orgId: string, membershipId: string) {
+    const membership = await this.prisma.membership.findFirst({
+      where: { id: membershipId, organizationId: orgId },
+    });
+    if (!membership) {
+      throw new BadRequestException(
+        'Miembro no encontrado en esta organización.',
+      );
+    }
+    return membership;
+  }
+
+  private async assertAdminCanBeChanged(
+    orgId: string,
+    membership: { role: Role },
+    removesAdminCapability: boolean,
+  ) {
+    if (membership.role !== 'ADMIN' || !removesAdminCapability) {
+      return;
+    }
+    const adminCount = await this.prisma.membership.count({
+      where: {
+        organizationId: orgId,
+        role: 'ADMIN',
+        user: { disabledAt: null },
+      },
+    });
+    if (adminCount <= 1) {
+      throw new BadRequestException(
+        'Debe permanecer al menos un administrador activo.',
+      );
+    }
+  }
+
+  private generateTemporaryPassword(): string {
+    return crypto.randomBytes(18).toString('base64url');
   }
 }

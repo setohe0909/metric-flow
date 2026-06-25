@@ -33,7 +33,7 @@ export class SchedulerController {
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateScheduleDto,
   ) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permisos para programar reportes.',
       );
@@ -65,7 +65,7 @@ export class SchedulerController {
     @Param('id') id: string,
     @Body() dto: UpdateScheduleDto,
   ) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permisos para modificar programaciones.',
       );
@@ -75,7 +75,7 @@ export class SchedulerController {
 
   @Delete(':id')
   async remove(@Request() req: AuthenticatedRequest, @Param('id') id: string) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permisos para eliminar programaciones.',
       );

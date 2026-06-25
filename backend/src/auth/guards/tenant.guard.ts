@@ -19,6 +19,12 @@ export class TenantGuard implements CanActivate {
       throw new UnauthorizedException('Usuario no autenticado');
     }
 
+    if (user.mustChangePassword) {
+      throw new ForbiddenException(
+        'Debes cambiar tu contraseña antes de continuar',
+      );
+    }
+
     // Obtener orgId del Header o usar la predeterminada del JWT
     const headerOrgId = request.headers['x-organization-id'] as string;
     const targetOrgId = headerOrgId || user.activeOrgId;

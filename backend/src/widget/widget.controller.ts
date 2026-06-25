@@ -24,7 +24,7 @@ export class WidgetController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req, @Body() dto: CreateWidgetDto) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para agregar widgets.',
       );
@@ -38,7 +38,7 @@ export class WidgetController {
     @Param('id') id: string,
     @Body() dto: UpdateWidgetDto,
   ) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para modificar widgets.',
       );
@@ -48,7 +48,7 @@ export class WidgetController {
 
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: string) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para eliminar widgets.',
       );

@@ -25,7 +25,7 @@ export class DashboardController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Request() req, @Body() dto: CreateDashboardDto) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para crear dashboards.',
       );
@@ -67,7 +67,7 @@ export class DashboardController {
     @Param('id') id: string,
     @Body() dto: UpdateDashboardDto,
   ) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para editar dashboards.',
       );
@@ -83,7 +83,7 @@ export class DashboardController {
     @Body('layouts')
     layouts: { id: string; x: number; y: number; w: number; h: number }[],
   ) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para modificar el diseño.',
       );
@@ -98,7 +98,7 @@ export class DashboardController {
     @Param('id') id: string,
     @Body('isPublic') isPublic: boolean,
   ) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para cambiar el estado de compartido.',
       );
@@ -109,7 +109,7 @@ export class DashboardController {
   @UseGuards(JwtAuthGuard, TenantGuard)
   @Delete(':id')
   async remove(@Request() req, @Param('id') id: string) {
-    if (req.userRole === 'viewer') {
+    if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los visualizadores no tienen permiso para eliminar dashboards.',
       );
