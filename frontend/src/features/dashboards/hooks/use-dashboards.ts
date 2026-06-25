@@ -6,6 +6,7 @@ export interface Dashboard {
   name: string;
   description?: string;
   isPublic: boolean;
+  publishedAt?: string | null;
   shareToken?: string;
   createdAt: string;
   widgets?: any[];
@@ -91,6 +92,20 @@ export function useDashboard(id: string) {
     },
   });
 
+  const togglePublishedMutation = useMutation({
+    mutationFn: async (published: boolean) => {
+      const { data } = await apiClient.put<Dashboard>(
+        `/dashboards/${id}/published`,
+        { published },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboards'] });
+    },
+  });
+
   return {
     dashboard,
     isLoadingDashboard: isLoading,
@@ -99,6 +114,8 @@ export function useDashboard(id: string) {
     isUpdatingLayout: updateLayoutMutation.isPending,
     toggleShareDashboard: togglePublicMutation.mutateAsync,
     isTogglingShare: togglePublicMutation.isPending,
+    togglePublishDashboard: togglePublishedMutation.mutateAsync,
+    isTogglingPublish: togglePublishedMutation.isPending,
   };
 }
 
@@ -118,4 +135,3 @@ export function usePublicDashboard(token: string) {
     dashboardError: error,
   };
 }
-

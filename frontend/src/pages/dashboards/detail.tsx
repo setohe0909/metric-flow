@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDashboard } from '@/features/dashboards/hooks/use-dashboards';
 import { useWidgets } from '@/features/widgets/hooks/use-widgets';
-import { useQueries } from '@/features/queries/hooks/use-queries';
 import { ChartRenderer } from '@/features/widgets/components/chart-renderer';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { SpotlightCard } from '@/components/spotlight-card';
+import { apiClient } from '@/lib/api-client';
 import {
   LayoutDashboard,
   Plus,
@@ -22,6 +22,8 @@ import {
   Save,
   X,
   Code2,
+  Eye,
+  EyeOff,
   Link as LinkIcon,
 } from 'lucide-react';
 import ReactGridLayout, { WidthProvider } from 'react-grid-layout/legacy';
@@ -40,6 +42,8 @@ export default function DashboardDetail() {
     isUpdatingLayout,
     toggleShareDashboard,
     isTogglingShare,
+    togglePublishDashboard,
+    isTogglingPublish,
   } = useDashboard(id || '');
   const { deleteWidget } = useWidgets();
 
@@ -143,6 +147,17 @@ export default function DashboardDetail() {
     }
   };
 
+  const handleTogglePublished = async () => {
+    try {
+      await togglePublishDashboard(!dashboard.publishedAt);
+    } catch (err: any) {
+      alert(
+        err.response?.data?.message ||
+          'Error al cambiar el estado de publicación.',
+      );
+    }
+  };
+
   const handleCopyLink = () => {
     const link = `${window.location.origin}/shared/dashboard/${dashboard.shareToken}`;
     navigator.clipboard.writeText(link);
@@ -177,6 +192,15 @@ export default function DashboardDetail() {
           </Link>
           <h1 className="text-2xl font-extrabold text-[#23251d] flex items-center gap-2.5 font-mono">
             <LayoutDashboard className="h-6 w-6 text-[#f7a501]" /> {dashboard.name}
+            <span
+              className={`text-[10px] uppercase px-2 py-1 rounded border-2 border-[#23251d] ${
+                dashboard.publishedAt
+                  ? 'bg-green-200 text-green-900'
+                  : 'bg-[#e4e5de] text-[#4d4f46]'
+              }`}
+            >
+              {dashboard.publishedAt ? 'Publicado' : 'Borrador'}
+            </span>
           </h1>
           {dashboard.description && (
             <p className="text-xs text-[#4d4f46] max-w-2xl font-mono">{dashboard.description}</p>
@@ -219,6 +243,21 @@ export default function DashboardDetail() {
                   Editar Diseño
                 </button>
               )}
+
+              <button
+                onClick={handleTogglePublished}
+                disabled={isTogglingPublish}
+                className="btn-retro-secondary"
+              >
+                {isTogglingPublish ? (
+                  <Loader2 className="animate-spin h-4 w-4" />
+                ) : dashboard.publishedAt ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                {dashboard.publishedAt ? 'Retirar' : 'Publicar'}
+              </button>
 
               <button
                 onClick={() => setShowSharePanel(!showSharePanel)}
@@ -449,7 +488,10 @@ export default function DashboardDetail() {
                 {/* Chart container */}
                 <div className="flex-1 min-h-0 p-5 bg-white">
                   <ErrorBoundary>
-                    <WidgetContainer widget={widget} />
+                    <WidgetContainer
+                      dashboardId={dashboard.id}
+                      widget={widget}
+                    />
                   </ErrorBoundary>
                 </div>
               </SpotlightCard>
@@ -461,8 +503,13 @@ export default function DashboardDetail() {
   );
 }
 
-function WidgetContainer({ widget }: { widget: any }) {
-  const { runQuery } = useQueries();
+function WidgetContainer({
+  dashboardId,
+  widget,
+}: {
+  dashboardId: string;
+  widget: any;
+}) {
   const [data, setData] = useState<Record<string, any>[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -470,18 +517,12 @@ function WidgetContainer({ widget }: { widget: any }) {
   useEffect(() => {
     let active = true;
     async function loadData() {
-      if (!widget.query) {
-        setLoading(false);
-        setError('Consulta no vinculada.');
-        return;
-      }
       try {
         setLoading(true);
         setError(null);
-        const res = await runQuery({
-          datasourceId: widget.query.datasourceId,
-          querySql: widget.query.querySql,
-        });
+        const { data: res } = await apiClient.get<{
+          rows: Record<string, any>[];
+        }>(`/dashboards/${dashboardId}/widgets/${widget.id}/data`);
         if (active) {
           setData(res.rows);
         }
@@ -500,7 +541,7 @@ function WidgetContainer({ widget }: { widget: any }) {
     return () => {
       active = false;
     };
-  }, [widget.query, runQuery]);
+  }, [dashboardId, widget.id, widget.updatedAt]);
 
   if (loading) {
     return (
