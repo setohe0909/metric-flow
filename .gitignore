@@ -41,6 +41,11 @@ backend/storage/
 # Coverage
 coverage/
 
+# TestSprite local reports and generated bundles
+reports/testsprite/
+reports/pre-release/
+.testsprite/
+
 # Vite cache
 .vite/
 
@@ -49,4 +54,3 @@ coverage/
 
 # SDD metadata
 .atl/
-

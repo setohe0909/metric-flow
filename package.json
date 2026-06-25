@@ -1,0 +1,9 @@
+{
+  "name": "metricflow-release-tools",
+  "private": true,
+  "scripts": {
+    "test:release-tools": "node --test scripts/*.test.mjs",
+    "release:test:testsprite": "node scripts/testsprite-release.mjs",
+    "release:check": "node scripts/pre-release.mjs"
+  }
+}

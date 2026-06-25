@@ -1,0 +1,100 @@
+name: Pre-release verification
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test -- --runInBand
+
+  frontend:
+    name: Frontend quality
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  testsprite:
+    name: TestSprite cloud suite
+    runs-on: ubuntu-latest
+    env:
+      TESTSPRITE_API_KEY: ${{ secrets.TESTSPRITE_API_KEY }}
+      TESTSPRITE_PROJECT_ID: ${{ vars.TESTSPRITE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test release tooling
+        run: npm run test:release-tools
+      - name: Run TestSprite release suite
+        run: npm run release:test:testsprite
+      - name: Upload TestSprite reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testsprite-release-report
+          path: reports/testsprite/
+          if-no-files-found: warn
+          retention-days: 30
+
+  release-decision:
+    name: Release decision
+    if: always()
+    needs:
+      - backend
+      - frontend
+      - testsprite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish decision
+        env:
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          TESTSPRITE_RESULT: ${{ needs.testsprite.result }}
+        run: |
+          {
+            echo "## Pre-release decision"
+            echo ""
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Backend | ${BACKEND_RESULT} |"
+            echo "| Frontend | ${FRONTEND_RESULT} |"
+            echo "| TestSprite | ${TESTSPRITE_RESULT} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$BACKEND_RESULT" != "success" || \
+                "$FRONTEND_RESULT" != "success" || \
+                "$TESTSPRITE_RESULT" != "success" ]]; then
+            echo "NO-GO: one or more pre-release checks failed." >&2
+            exit 1
+          fi
+
+          echo "GO: all pre-release checks passed."

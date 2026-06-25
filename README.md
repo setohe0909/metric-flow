@@ -285,6 +285,61 @@ Open an [issue](https://github.com/setohe0909/metric-flow/issues) with:
 
 MetricFlow is released under the [MIT License](LICENSE).
 
+## Pre-release verification with TestSprite
+
+MetricFlow includes a local command and a GitHub Actions workflow that run the
+durable TestSprite project suite alongside the backend and frontend quality
+checks. TestSprite remains an infrastructure adapter and does not participate
+in application or domain logic.
+
+### Required configuration
+
+Create or select a project in TestSprite, then configure:
+
+- Local environment: `TESTSPRITE_API_KEY` and `TESTSPRITE_PROJECT_ID`.
+- GitHub Actions secret: `TESTSPRITE_API_KEY`.
+- GitHub Actions repository variable: `TESTSPRITE_PROJECT_ID`.
+
+Never commit the API key. If a key has been shared in chat, logs, or source
+control, revoke it and create a replacement before using this integration.
+
+### Run locally
+
+Node.js 20 or newer is required.
+
+```bash
+export TESTSPRITE_API_KEY="your-new-key"
+export TESTSPRITE_PROJECT_ID="proj_..."
+npm run release:test:testsprite
+```
+
+The command strictly replays all durable frontend and backend tests in the
+TestSprite project with frontend auto-healing disabled, and writes:
+
+- `reports/testsprite/testsprite-result.json`
+- `reports/testsprite/testsprite-cli.log`
+- `reports/testsprite/release-decision.md`
+
+An exit code of `0` produces a `GO` decision. Test failures produce `NO-GO` and
+exit `1`; missing configuration exits `2`.
+
+To run the complete local gate, use:
+
+```bash
+npm run release:check
+```
+
+This starts the backend build/tests, frontend build, and TestSprite suite in
+parallel. Its consolidated decision is written to
+`reports/pre-release/release-decision.md`.
+
+### Run before a release in GitHub
+
+Open **Actions → Pre-release verification → Run workflow**. Backend validation,
+frontend validation, and the TestSprite cloud suite run in parallel. The final
+`Release decision` job blocks on any failure and publishes a summary. TestSprite
+reports are retained as a workflow artifact for 30 days.
+
 ---
 
 <p align="center">
