@@ -6,14 +6,20 @@ export interface OrgUser {
   email: string;
   firstName: string;
   lastName?: string;
+  disabledAt?: string | null;
+  mustChangePassword?: boolean;
 }
 
 export interface OrgMembership {
   id: string;
   userId: string;
-  role: 'owner' | 'admin' | 'viewer';
+  role: 'ADMIN' | 'EDITOR' | 'READER';
   user: OrgUser;
   createdAt: string;
+}
+
+interface MemberMutation {
+  membershipId: string;
 }
 
 export interface ActiveOrgDetails {
@@ -50,13 +56,54 @@ export function useOrganization() {
 
   // Invitar/agregar miembro
   const inviteMemberMutation = useMutation({
-    mutationFn: async (payload: { email: string; role: 'owner' | 'admin' | 'viewer' }) => {
-      const { data } = await apiClient.post<OrgMembership>('/organizations/active/members', payload);
+    mutationFn: async (payload: { email: string; role: 'ADMIN' | 'EDITOR' | 'READER' }) => {
+      const { data } = await apiClient.post<
+        OrgMembership & { temporaryPassword: string | null }
+      >('/organizations/active/members', payload);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-org-details'] });
     },
+  });
+
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({
+      membershipId,
+      role,
+    }: MemberMutation & { role: OrgMembership['role'] }) => {
+      const { data } = await apiClient.put(
+        `/organizations/active/members/${membershipId}/role`,
+        { role },
+      );
+      return data;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['active-org-details'] }),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ membershipId }: MemberMutation) => {
+      const { data } = await apiClient.post<{ temporaryPassword: string }>(
+        `/organizations/active/members/${membershipId}/reset-password`,
+      );
+      return data;
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      membershipId,
+      disabled,
+    }: MemberMutation & { disabled: boolean }) => {
+      const { data } = await apiClient.put(
+        `/organizations/active/members/${membershipId}/status`,
+        { disabled },
+      );
+      return data;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['active-org-details'] }),
   });
 
   // Eliminar miembro
@@ -70,17 +117,6 @@ export function useOrganization() {
     },
   });
 
-  // Crear nueva organización
-  const createOrgMutation = useMutation({
-    mutationFn: async (payload: { name: string }) => {
-      const { data } = await apiClient.post<any>('/organizations', payload);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['auth-me'] });
-    },
-  });
-
   return {
     orgDetails,
     isLoadingOrg: isLoading,
@@ -91,7 +127,8 @@ export function useOrganization() {
     isInviting: inviteMemberMutation.isPending,
     removeMember: removeMemberMutation.mutateAsync,
     isRemoving: removeMemberMutation.isPending,
-    createOrganization: createOrgMutation.mutateAsync,
-    isCreatingOrg: createOrgMutation.isPending,
+    updateMemberRole: updateRoleMutation.mutateAsync,
+    resetMemberPassword: resetPasswordMutation.mutateAsync,
+    setMemberDisabled: updateStatusMutation.mutateAsync,
   };
 }

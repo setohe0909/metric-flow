@@ -115,7 +115,7 @@ export default function WidgetCreator() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
 
-  const isViewer = activeOrg?.role === 'viewer';
+  const isViewer = activeOrg?.role === 'READER';
 
   // Si se selecciona otra query, cargar su previsualización automáticamente
   useEffect(() => {

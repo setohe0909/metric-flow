@@ -14,6 +14,7 @@ import WidgetCreator from './pages/widgets/creator';
 import QueryEditor from './pages/queries/editor';
 import DatasourceManager from './pages/datasources/manager';
 import OrgSettings from './pages/settings/organization';
+import ChangePassword from './pages/change-password';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/setup" element={<Setup />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/change-password" element={<ChangePassword />} />
           <Route path="/shared/dashboard/:token" element={<PublicDashboardView />} />
 
           {/* Protected Routes */}

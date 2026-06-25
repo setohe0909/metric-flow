@@ -10,6 +10,7 @@ interface LoginResponse {
     email: string;
     firstName: string;
     lastName: string;
+    mustChangePassword: boolean;
   };
   organization: {
     id: string;
@@ -35,7 +36,7 @@ export function useAuth() {
       const org = data.organization;
       setAuth(data.user, data.token, [org], org);
       queryClient.invalidateQueries({ queryKey: ['auth-me'] });
-      navigate('/dashboards');
+      navigate(data.user.mustChangePassword ? '/change-password' : '/dashboards');
     },
   });
 
@@ -57,7 +58,13 @@ export function useAuth() {
     const activeOrg = savedOrg || profile.organizations[0] || null;
     const token = localStorage.getItem('metricflow_token') || '';
     setAuth(
-      { id: profile.id, email: profile.email, firstName: profile.firstName, lastName: profile.lastName },
+      {
+        id: profile.id,
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        mustChangePassword: profile.mustChangePassword,
+      },
       token,
       profile.organizations,
       activeOrg
@@ -70,10 +77,39 @@ export function useAuth() {
     navigate('/login');
   };
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async (payload: {
+      currentPassword: string;
+      newPassword: string;
+    }) => {
+      const { data } = await apiClient.post<{
+        token: string;
+        mustChangePassword: boolean;
+        organization: LoginResponse['organization'];
+      }>('/auth/change-password', payload);
+      return data;
+    },
+    onSuccess: (data) => {
+      if (!user) return;
+      const updatedUser = { ...user, mustChangePassword: false };
+      setAuth(
+        updatedUser,
+        data.token,
+        [data.organization],
+        data.organization,
+      );
+      queryClient.invalidateQueries({ queryKey: ['auth-me'] });
+      navigate('/dashboards', { replace: true });
+    },
+  });
+
   return {
     login: loginMutation.mutate,
     isLoggingIn: loginMutation.isPending,
     loginError: loginMutation.error,
+    changePassword: changePasswordMutation.mutate,
+    isChangingPassword: changePasswordMutation.isPending,
+    changePasswordError: changePasswordMutation.error,
     logout,
     user,
     activeOrg,

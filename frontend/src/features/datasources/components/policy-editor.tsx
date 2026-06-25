@@ -10,17 +10,17 @@ interface PolicyEditorProps {
   onClose: () => void;
 }
 
-type Role = 'viewer' | 'admin';
+type Role = 'READER' | 'EDITOR';
 
 const ROLE_LABELS: Record<Role, { label: string; description: string; color: string }> = {
-  viewer: {
-    label: 'Viewer',
+  READER: {
+    label: 'Lector',
     description: 'Usuarios de solo lectura. Aplica la restricción más estricta.',
     color: '#f7a501',
   },
-  admin: {
-    label: 'Admin',
-    description: 'Administradores de la organización. Restricción opcional.',
+  EDITOR: {
+    label: 'Editor',
+    description: 'Usuarios que crean contenido y ejecutan consultas de lectura.',
     color: '#23251d',
   },
 };
@@ -55,19 +55,19 @@ export function PolicyEditor({ datasourceId, datasourceName, initialPolicies, on
   const { updatePolicies, isUpdating } = useDatasourcePolicies();
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [saveMessage, setSaveMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<Role>('viewer');
+  const [activeTab, setActiveTab] = useState<Role>('READER');
 
-  const viewer = useRolePolicyState(initialPolicies?.viewer);
-  const admin = useRolePolicyState(initialPolicies?.admin);
+  const READER = useRolePolicyState(initialPolicies?.READER);
+  const EDITOR = useRolePolicyState(initialPolicies?.EDITOR);
 
-  const roleState: Record<Role, ReturnType<typeof useRolePolicyState>> = { viewer, admin };
+  const roleState: Record<Role, ReturnType<typeof useRolePolicyState>> = { READER, EDITOR };
 
   const handleSave = async () => {
     setSaveStatus('idle');
     try {
       const policies: AccessPolicies = {};
-      if (viewer.enabled) policies.viewer = viewer.toPolicy();
-      if (admin.enabled) policies.admin = admin.toPolicy();
+      if (READER.enabled) policies.READER = READER.toPolicy();
+      if (EDITOR.enabled) policies.EDITOR = EDITOR.toPolicy();
 
       const res = await updatePolicies({ datasourceId, policies });
       setSaveStatus('success');
@@ -112,14 +112,14 @@ export function PolicyEditor({ datasourceId, datasourceName, initialPolicies, on
       >
         <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: '#f7a501' }} />
         <p>
-          El <strong>owner</strong> siempre ve todos los datos sin restricción.{' '}
-          Configura abajo qué pueden ver los roles <strong>admin</strong> y <strong>viewer</strong>.
+          El <strong>administrador</strong> siempre ve todos los datos sin restricción.{' '}
+          Configura abajo qué pueden ver los roles <strong>editor</strong> y <strong>lector</strong>.
         </p>
       </div>
 
       {/* Tab selector */}
       <div className="flex border-b-2 border-[#23251d] font-mono text-xs font-bold">
-        {(['viewer', 'admin'] as Role[]).map((role) => {
+        {(['READER', 'EDITOR'] as Role[]).map((role) => {
           const rs = roleState[role];
           return (
             <button
@@ -146,7 +146,7 @@ export function PolicyEditor({ datasourceId, datasourceName, initialPolicies, on
       </div>
 
       {/* Tab content */}
-      {(['viewer', 'admin'] as Role[]).map((role) => {
+      {(['READER', 'EDITOR'] as Role[]).map((role) => {
         if (activeTab !== role) return null;
         const rs = roleState[role];
         const meta = ROLE_LABELS[role];

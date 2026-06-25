@@ -7,8 +7,8 @@ export interface RolePolicy {
 }
 
 export interface AccessPolicies {
-  viewer?: RolePolicy;
-  admin?: RolePolicy;
+  READER?: RolePolicy;
+  EDITOR?: RolePolicy;
 }
 
 export interface UpdatePoliciesPayload {

@@ -20,8 +20,8 @@ export default function DatasourceManager() {
   } = useDatasources();
 
   const { activeOrg } = useAuth();
-  const userRole = (activeOrg as any)?.role ?? 'viewer';
-  const isOwner = userRole === 'owner';
+  const userRole = (activeOrg as any)?.role ?? 'READER';
+  const isOwner = userRole === 'ADMIN';
 
   // ID del datasource cuyo PolicyEditor está abierto (null = ninguno)
   const [expandedPolicyId, setExpandedPolicyId] = useState<string | null>(null);

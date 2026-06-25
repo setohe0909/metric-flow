@@ -22,6 +22,7 @@ interface BootstrapResponse {
     email: string;
     firstName: string;
     lastName: string;
+    mustChangePassword: boolean;
   };
   organization: {
     id: string;

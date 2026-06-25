@@ -16,7 +16,7 @@ export default function DashboardList() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const isViewer = activeOrg?.role === 'viewer';
+  const isViewer = activeOrg?.role === 'READER';
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();

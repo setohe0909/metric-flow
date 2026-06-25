@@ -52,7 +52,7 @@ export default function DashboardDetail() {
   const [iframeWidth, setIframeWidth] = useState('100%');
   const [iframeHeight, setIframeHeight] = useState('600');
 
-  const isViewer = activeOrg?.role === 'viewer';
+  const isViewer = activeOrg?.role === 'READER';
 
   // Initialize layouts from dashboard widgets
   useEffect(() => {

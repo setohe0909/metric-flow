@@ -34,7 +34,7 @@
 - 📊 **Build charts** — bar, line, pie, KPI cards, and data tables
 - 🗂️ **Compose dashboards** with drag-and-drop widget layouts
 - 🔗 **Share and Embed** dashboards publicly via secure share tokens and customizable `<iframe>` snippets
-- 🛡️ **Granular Access Control** — row-level filters and column-level permission masks per role (admin / viewer)
+- 🛡️ **Granular Access Control** — administrator, editor, and reader capabilities with row and column policies
 - 🏢 **Self-hosted workspace** — one organization per installation with role-based access
 - 🔐 **Secure** — AES-256 encrypted datasource credentials, JWT authentication
 
@@ -239,7 +239,11 @@ npm run build         # Vite production build
 - JWT tokens are signed with the mandatory `JWT_SECRET`.
 - Datasource credentials use the mandatory, independent `ENCRYPTION_KEY`.
 - PostgreSQL and MySQL queries are parsed and executed in read-only transactions.
-- The `viewer` role is **read-only** — viewers cannot create or modify queries, datasources, or dashboards.
+- `ADMIN` manages users, settings, datasources, and content.
+- `EDITOR` manages datasources and creates analytical content using read-only SQL.
+- `READER` consumes published analytical content and cannot administer the installation.
+- New and reset accounts receive a one-time temporary password and must replace it before accessing tenant resources.
+- Password changes, resets, and user disabling revoke existing JWT sessions.
 - Public dashboard share tokens are UUID-based and revocable by the dashboard owner.
 - Never commit your `.env` file. It is listed in `.gitignore` by default.
 

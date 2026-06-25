@@ -5,7 +5,7 @@ import Sidebar from '@/components/sidebar';
 import { Database, Loader2 } from 'lucide-react';
 
 export default function AppLayout() {
-  const { isAuthenticated, isLoadingProfile } = useAuth();
+  const { isAuthenticated, isLoadingProfile, user } = useAuth();
   // El token en el store es la señal más temprana de autenticación.
   // Mientras el perfil carga (y ya hay token), mostramos el loader
   // en lugar de redirigir — esto evita el race condition post-login.
@@ -41,6 +41,10 @@ export default function AppLayout() {
   // Perfil cargó y no hay usuario válido → redirigir al login
   if (!isLoadingProfile && !isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user?.mustChangePassword) {
+    return <Navigate to="/change-password" replace />;
   }
 
   return (
