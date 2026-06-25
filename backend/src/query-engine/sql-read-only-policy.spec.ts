@@ -17,6 +17,24 @@ describe('SqlReadOnlyPolicy', () => {
     },
   );
 
+  it.each(['sqlite', 'csv'])(
+    'accepts a single SELECT for the read-only %s engine',
+    (dialect) => {
+      expect(policy.prepare(dialect, 'SELECT * FROM matches')).toBe(
+        'SELECT * FROM matches LIMIT 1000;',
+      );
+    },
+  );
+
+  it.each(['sqlite', 'csv'])(
+    'rejects writes for the read-only %s engine',
+    (dialect) => {
+      expect(() => policy.prepare(dialect, 'DELETE FROM matches')).toThrow(
+        'Solo se permiten consultas SQL de lectura.',
+      );
+    },
+  );
+
   it('accepts a read-only PostgreSQL CTE', () => {
     const sql =
       'WITH active AS (SELECT * FROM users) SELECT * FROM active LIMIT 25';
@@ -62,8 +80,8 @@ describe('SqlReadOnlyPolicy', () => {
   });
 
   it('rejects unsupported datasource dialects', () => {
-    expect(() => policy.prepare('sqlite', 'SELECT * FROM users')).toThrow(
-      'Solo PostgreSQL y MySQL están habilitados para ejecutar consultas.',
+    expect(() => policy.prepare('bigquery', 'SELECT * FROM users')).toThrow(
+      'El tipo de origen de datos no admite ejecución SQL segura.',
     );
   });
 });

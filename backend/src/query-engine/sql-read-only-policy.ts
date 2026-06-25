@@ -16,6 +16,8 @@ type SqlAst = {
 const DIALECTS: Record<string, string> = {
   postgres: 'Postgresql',
   mysql: 'MySQL',
+  sqlite: 'SQLite',
+  csv: 'SQLite',
 };
 
 const FORBIDDEN_STATEMENT_TYPES = new Set([
@@ -47,7 +49,7 @@ export class SqlReadOnlyPolicy {
     const database = DIALECTS[datasourceType];
     if (!database) {
       throw new BadRequestException(
-        'Solo PostgreSQL y MySQL están habilitados para ejecutar consultas.',
+        'El tipo de origen de datos no admite ejecución SQL segura.',
       );
     }
 
