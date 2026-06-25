@@ -150,15 +150,15 @@ export default function QueryEditor() {
     if (!editorRef.current) return;
     const editor = editorRef.current;
     const selection = editor.getSelection();
-    const range = new editorRef.current.constructor.Range(
-      selection.startLineNumber,
-      selection.startColumn,
-      selection.endLineNumber,
-      selection.endColumn
-    );
-    const id = { major: 1, minor: 1 };
-    const textOp = { identifier: id, range: range, text: text, forceMoveMarkers: true };
-    editor.executeEdits("metricflow-schema-explorer", [textOp]);
+    if (!selection) return;
+
+    editor.executeEdits('metricflow-schema-explorer', [
+      {
+        range: selection,
+        text,
+        forceMoveMarkers: true,
+      },
+    ]);
     editor.focus();
   };
 
