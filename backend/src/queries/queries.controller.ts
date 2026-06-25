@@ -24,13 +24,6 @@ export class QueriesController {
   @Post('run')
   @HttpCode(HttpStatus.OK)
   async runRawQuery(@Request() req, @Body() dto: RunQueryDto) {
-    // Viewers pueden ejecutar queries guardadas a través de widgets,
-    // pero el SQL libre sigue restringido a owner y admin.
-    if (req.userRole === 'READER') {
-      throw new ForbiddenException(
-        'Los visualizadores no tienen permiso para ejecutar SQL libre.',
-      );
-    }
     return this.queriesService.runRaw(
       req.orgId,
       req.user.id,

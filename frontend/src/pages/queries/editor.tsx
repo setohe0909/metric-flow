@@ -10,6 +10,8 @@ import { apiClient } from '@/lib/api-client';
 import { Play, Save, Loader2, AlertTriangle, CheckCircle, Database, Terminal, Clock, Rows, Trash2, Sliders, X, FileText, EyeOff } from 'lucide-react';
 import { ScheduleModal } from '@/features/queries/components/schedule-modal';
 
+const DEFAULT_SQL = '-- Escribe tu consulta SQL aquí\nSELECT 1 as test;';
+
 export default function QueryEditor() {
   const navigate = useNavigate();
   const { datasources, isLoading: isLoadingDss } = useDatasources();
@@ -17,7 +19,7 @@ export default function QueryEditor() {
   const { dashboards } = useDashboards();
 
   const [selectedDsId, setSelectedDsId] = useState<string>('');
-  const [sqlCode, setSqlCode] = useState<string>('-- Escribe tu consulta SQL aquí\nSELECT 1 as test;');
+  const [sqlCode, setSqlCode] = useState<string>(DEFAULT_SQL);
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null);
   
   // Estados de ejecución
@@ -109,9 +111,16 @@ export default function QueryEditor() {
     setExecutionError(null);
     setQueryResult(null);
     try {
+      const editor = editorRef.current;
+      const selection = editor?.getSelection();
+      const selectedSql =
+        selection && !selection.isEmpty()
+          ? editor.getModel()?.getValueInRange(selection).trim()
+          : '';
+      const querySql = selectedSql || editor?.getValue() || sqlCode;
       const res = await runQuery({
         datasourceId: selectedDsId,
-        querySql: sqlCode,
+        querySql,
       });
       setQueryResult(res);
     } catch (err: any) {
@@ -152,9 +161,16 @@ export default function QueryEditor() {
     const selection = editor.getSelection();
     if (!selection) return;
 
+    const currentSql = editor.getValue();
+    const range =
+      currentSql === DEFAULT_SQL
+        ? editor.getModel()?.getFullModelRange()
+        : selection;
+    if (!range) return;
+
     editor.executeEdits('metricflow-schema-explorer', [
       {
-        range: selection,
+        range,
         text,
         forceMoveMarkers: true,
       },
