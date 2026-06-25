@@ -26,6 +26,17 @@ describe('SqlReadOnlyPolicy', () => {
     },
   );
 
+  it('accepts a SQLite SELECT preceded by the editor placeholder comment', () => {
+    expect(
+      policy.prepare(
+        'sqlite',
+        '-- Escribe tu consulta SQL aquí\nSELECT * FROM matches;',
+      ),
+    ).toBe(
+      '-- Escribe tu consulta SQL aquí\nSELECT * FROM matches LIMIT 1000;',
+    );
+  });
+
   it.each(['sqlite', 'csv'])(
     'rejects writes for the read-only %s engine',
     (dialect) => {

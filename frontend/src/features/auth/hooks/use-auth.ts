@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import { useOrgStore } from '@/store/use-org-store';
@@ -20,6 +21,10 @@ interface LoginResponse {
   };
 }
 
+type AuthProfile = LoginResponse['user'] & {
+  organizations: LoginResponse['organization'][];
+};
+
 export function useAuth() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -41,22 +46,31 @@ export function useAuth() {
   });
 
   // Query para validar sesión activa y obtener todas las organizaciones
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading } = useQuery<AuthProfile>({
     queryKey: ['auth-me'],
     queryFn: async () => {
-      const { data } = await apiClient.get<any>('/auth/me');
+      const { data } = await apiClient.get<AuthProfile>('/auth/me');
       return data;
     },
     enabled: !!localStorage.getItem('metricflow_token'),
     retry: false,
   });
 
-  // Sincronizar perfil con Zustand
-  if (profile && !user) {
+  // Sincronizar el perfil después del render. useAuth se consume desde varios
+  // componentes, así que verificamos el estado actual antes de hidratarlo.
+  useEffect(() => {
+    if (!profile || useOrgStore.getState().user) return;
+
     const savedOrgId = localStorage.getItem('metricflow_active_org_id');
-    const savedOrg = profile.organizations.find((o: any) => o.id === savedOrgId);
-    const activeOrg = savedOrg || profile.organizations[0] || null;
-    const token = localStorage.getItem('metricflow_token') || '';
+    const savedOrg = profile.organizations.find(
+      (organization: LoginResponse['organization']) =>
+        organization.id === savedOrgId,
+    );
+    const organization = savedOrg || profile.organizations[0];
+    const token = localStorage.getItem('metricflow_token');
+
+    if (!organization || !token) return;
+
     setAuth(
       {
         id: profile.id,
@@ -67,9 +81,9 @@ export function useAuth() {
       },
       token,
       profile.organizations,
-      activeOrg
+      organization,
     );
-  }
+  }, [profile, setAuth]);
 
   const logout = () => {
     clearAuth();

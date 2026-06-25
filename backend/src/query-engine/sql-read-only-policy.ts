@@ -65,9 +65,12 @@ export class SqlReadOnlyPolicy {
     }
 
     if (Array.isArray(ast)) {
-      throw new BadRequestException(
-        'Solo se permite una sentencia SQL de lectura.',
-      );
+      if (ast.length !== 1) {
+        throw new BadRequestException(
+          'Solo se permite una sentencia SQL de lectura.',
+        );
+      }
+      [ast] = ast;
     }
 
     if (
