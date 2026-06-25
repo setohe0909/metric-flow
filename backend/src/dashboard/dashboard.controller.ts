@@ -13,7 +13,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
-import { CreateDashboardDto, UpdateDashboardDto } from './dto/dashboard.dto';
+import {
+  CreateDashboardDto,
+  SetDashboardPublishedDto,
+  UpdateDashboardDto,
+} from './dto/dashboard.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../auth/guards/tenant.guard';
 
@@ -81,14 +85,14 @@ export class DashboardController {
   setPublished(
     @Request() req,
     @Param('id') id: string,
-    @Body('published') published: boolean,
+    @Body() dto: SetDashboardPublishedDto,
   ) {
     if (req.userRole === 'READER') {
       throw new ForbiddenException(
         'Los lectores no pueden publicar dashboards.',
       );
     }
-    return this.dashboardService.setPublished(req.orgId, id, published);
+    return this.dashboardService.setPublished(req.orgId, id, dto.published);
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)

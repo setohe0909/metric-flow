@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsBoolean, IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class CreateDashboardDto {
   @IsString({ message: 'El nombre debe ser un texto' })
@@ -18,4 +18,9 @@ export class UpdateDashboardDto {
   @IsString({ message: 'La descripción debe ser un texto' })
   @IsOptional()
   description?: string;
+}
+
+export class SetDashboardPublishedDto {
+  @IsBoolean({ message: 'El estado de publicación debe ser booleano' })
+  published: boolean;
 }

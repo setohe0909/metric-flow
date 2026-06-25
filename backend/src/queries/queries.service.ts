@@ -16,7 +16,7 @@ export class QueriesService {
 
   async runRaw(
     orgId: string,
-    userId: string,
+    userId: string | null,
     userRole: string,
     dto: RunQueryDto,
   ) {
@@ -79,8 +79,10 @@ export class QueriesService {
             }
           : null,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       const durationMs = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
 
       // Registrar auditoría (error)
       await this.prisma.execution
@@ -92,7 +94,7 @@ export class QueriesService {
             durationMs,
             rowCount: 0,
             status: 'error',
-            errorMessage: error.message,
+            errorMessage,
           },
         })
         .catch((e) => console.error('Fallo al guardar log de auditoría:', e));

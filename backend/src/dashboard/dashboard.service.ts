@@ -1,17 +1,41 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDashboardDto, UpdateDashboardDto } from './dto/dashboard.dto';
-import { DatasourceService } from '../datasource/datasource.service';
-import { QueryEngineService } from '../query-engine/query-engine.service';
 import * as crypto from 'crypto';
 import { QueriesService } from '../queries/queries.service';
+
+const DASHBOARD_LIST_VIEW = {
+  id: true,
+  name: true,
+  description: true,
+  publishedAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const DASHBOARD_DETAIL_VIEW = {
+  ...DASHBOARD_LIST_VIEW,
+  widgets: {
+    select: {
+      id: true,
+      title: true,
+      type: true,
+      chartConfig: true,
+      layoutX: true,
+      layoutY: true,
+      layoutW: true,
+      layoutH: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: { createdAt: 'asc' as const },
+  },
+} as const;
 
 @Injectable()
 export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly datasourceService: DatasourceService,
-    private readonly queryEngine: QueryEngineService,
     private readonly queriesService: QueriesService,
   ) {}
 
@@ -27,39 +51,59 @@ export class DashboardService {
   }
 
   async findAll(orgId: string, role: string) {
+    if (role === 'READER') {
+      return this.prisma.dashboard.findMany({
+        where: {
+          organizationId: orgId,
+          publishedAt: { not: null },
+        },
+        select: DASHBOARD_LIST_VIEW,
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
     return this.prisma.dashboard.findMany({
-      where: {
-        organizationId: orgId,
-        ...(role === 'READER' ? { publishedAt: { not: null } } : {}),
-      },
+      where: { organizationId: orgId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(orgId: string, id: string, role = 'ADMIN') {
+    if (role === 'READER') {
+      const dashboard = await this.prisma.dashboard.findFirst({
+        where: {
+          id,
+          organizationId: orgId,
+          publishedAt: { not: null },
+        },
+        select: DASHBOARD_DETAIL_VIEW,
+      });
+      if (!dashboard) {
+        throw new BadRequestException('Dashboard no encontrado');
+      }
+      return dashboard;
+    }
+
     const where = {
       id,
       organizationId: orgId,
-      ...(role === 'READER' ? { publishedAt: { not: null } } : {}),
+    };
+    const widgets = {
+      include: {
+        query: {
+          select: {
+            id: true,
+            name: true,
+            querySql: true,
+            datasourceId: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' as const },
     };
     const dashboard = await this.prisma.dashboard.findFirst({
       where,
-      include: {
-        widgets: {
-          include: {
-            query: {
-              select: {
-                id: true,
-                name: true,
-                ...(role === 'READER'
-                  ? {}
-                  : { querySql: true, datasourceId: true }),
-              },
-            },
-          },
-          orderBy: { createdAt: 'asc' },
-        },
-      },
+      include: { widgets },
     });
 
     if (!dashboard) {
@@ -70,11 +114,14 @@ export class DashboardService {
   }
 
   async setPublished(orgId: string, id: string, published: boolean) {
-    await this.findOne(orgId, id);
-    return this.prisma.dashboard.update({
-      where: { id },
+    const result = await this.prisma.dashboard.updateMany({
+      where: { id, organizationId: orgId },
       data: { publishedAt: published ? new Date() : null },
     });
+    if (result.count === 0) {
+      throw new BadRequestException('Dashboard no encontrado');
+    }
+    return this.prisma.dashboard.findUnique({ where: { id } });
   }
 
   async getWidgetData(
@@ -86,7 +133,11 @@ export class DashboardService {
   ) {
     await this.findOne(orgId, dashboardId, role);
     const widget = await this.prisma.widget.findFirst({
-      where: { id: widgetId, dashboardId },
+      where: {
+        id: widgetId,
+        dashboardId,
+        dashboard: { organizationId: orgId },
+      },
       include: { query: true },
     });
     if (!widget?.query?.datasourceId) {
@@ -146,7 +197,13 @@ export class DashboardService {
   }
 
   async togglePublic(orgId: string, id: string, isPublic: boolean) {
-    const dashboard = await this.findOne(orgId, id);
+    const dashboard = await this.prisma.dashboard.findFirst({
+      where: { id, organizationId: orgId },
+      select: { id: true, shareToken: true },
+    });
+    if (!dashboard) {
+      throw new BadRequestException('Dashboard no encontrado');
+    }
     let shareToken = dashboard.shareToken;
 
     if (isPublic && !shareToken) {
@@ -167,20 +224,7 @@ export class DashboardService {
   async getPublicDashboard(token: string) {
     const dashboard = await this.prisma.dashboard.findFirst({
       where: { shareToken: token, isPublic: true },
-      include: {
-        widgets: {
-          include: {
-            query: {
-              select: {
-                id: true,
-                name: true,
-                datasourceId: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'asc' },
-        },
-      },
+      select: DASHBOARD_DETAIL_VIEW,
     });
 
     if (!dashboard) {
@@ -219,19 +263,14 @@ export class DashboardService {
       );
     }
 
-    const datasource = await this.datasourceService.findOne(
+    return this.queriesService.runRaw(
       dashboard.organizationId,
-      widget.query.datasourceId,
+      null,
+      'READER',
+      {
+        datasourceId: widget.query.datasourceId,
+        querySql: widget.query.querySql,
+      },
     );
-
-    const result = await this.queryEngine.executeQuery(
-      datasource.type,
-      datasource.connectionSettings,
-      widget.query.querySql,
-      datasource.id,
-      dashboard.organizationId,
-    );
-
-    return result;
   }
 }
