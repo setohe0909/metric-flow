@@ -8,6 +8,10 @@ export class RunQueryDto {
   @IsString()
   @IsNotEmpty({ message: 'El código SQL es obligatorio' })
   querySql: string;
+
+  @IsUUID('4', { message: 'ID de ejecución inválido' })
+  @IsOptional()
+  executionId?: string;
 }
 
 export class SaveQueryDto {

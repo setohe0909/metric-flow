@@ -1,17 +1,22 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DatasourceService } from '../datasource/datasource.service';
 import { QueryEngineService } from '../query-engine/query-engine.service';
 import { FilteringService } from '../datasource/filtering.service';
 import { RunQueryDto, SaveQueryDto } from './dto/queries.dto';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class QueriesService {
+  private readonly logger = new Logger(QueriesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly datasourceService: DatasourceService,
     private readonly queryEngine: QueryEngineService,
     private readonly filteringService: FilteringService,
+    private readonly auditService: AuditService,
   ) {}
 
   async runRaw(
@@ -20,6 +25,8 @@ export class QueriesService {
     userRole: string,
     dto: RunQueryDto,
   ) {
+    const executionId = dto.executionId ?? randomUUID();
+
     // 1. Obtener conector desencriptado (ahora incluye accessPolicies)
     const datasource = await this.datasourceService.findOne(
       orgId,
@@ -43,6 +50,7 @@ export class QueriesService {
         wrappedSql,
         datasource.id,
         orgId,
+        executionId,
       );
 
       // 4. Post-procesado: filtrar columnas no permitidas
@@ -65,10 +73,27 @@ export class QueriesService {
             status: 'success',
           },
         })
-        .catch((e) => console.error('Fallo al guardar log de auditoría:', e));
+        .catch((e) =>
+          this.logger.error(`Fallo al guardar ejecución: ${String(e)}`),
+        );
+
+      await this.auditService.log({
+        organizationId: orgId,
+        userId,
+        action: 'QUERY_RUN_SUCCEEDED',
+        resourceType: 'query-execution',
+        resourceId: executionId,
+        metadata: {
+          datasourceId: datasource.id,
+          durationMs,
+          rowCount: result.rowCount,
+          filtered: isFiltered,
+        },
+      });
 
       return {
         ...result,
+        executionId,
         durationMs,
         // Metadata de filtrado para que el frontend pueda mostrar el aviso
         filtered: isFiltered,
@@ -97,7 +122,25 @@ export class QueriesService {
             errorMessage,
           },
         })
-        .catch((e) => console.error('Fallo al guardar log de auditoría:', e));
+        .catch((e) =>
+          this.logger.error(`Fallo al guardar ejecución: ${String(e)}`),
+        );
+
+      await this.auditService.log({
+        organizationId: orgId,
+        userId,
+        action:
+          errorMessage === 'La consulta fue cancelada.'
+            ? 'QUERY_RUN_CANCELLED'
+            : 'QUERY_RUN_FAILED',
+        resourceType: 'query-execution',
+        resourceId: executionId,
+        metadata: {
+          datasourceId: dto.datasourceId,
+          durationMs,
+          errorMessage,
+        },
+      });
 
       throw error;
     }
@@ -108,7 +151,7 @@ export class QueriesService {
     // Validar existencia del datasource
     await this.datasourceService.findOne(orgId, dto.datasourceId);
 
-    return this.prisma.query.create({
+    const query = await this.prisma.query.create({
       data: {
         organizationId: orgId,
         datasourceId: dto.datasourceId,
@@ -118,6 +161,20 @@ export class QueriesService {
         createdByUserId: userId,
       },
     });
+
+    await this.auditService.log({
+      organizationId: orgId,
+      userId,
+      action: 'QUERY_CREATED',
+      resourceType: 'query',
+      resourceId: query.id,
+      metadata: {
+        datasourceId: dto.datasourceId,
+        name: dto.name,
+      },
+    });
+
+    return query;
   }
 
   async findAll(orgId: string) {
@@ -137,9 +194,40 @@ export class QueriesService {
     return query;
   }
 
-  async remove(orgId: string, id: string) {
+  async remove(orgId: string, userId: string, id: string) {
     const query = await this.findOne(orgId, id);
     await this.prisma.query.delete({ where: { id: query.id } });
+
+    await this.auditService.log({
+      organizationId: orgId,
+      userId,
+      action: 'QUERY_DELETED',
+      resourceType: 'query',
+      resourceId: query.id,
+      metadata: {
+        name: query.name,
+      },
+    });
+
     return { success: true };
+  }
+
+  async cancelActiveExecution(
+    orgId: string,
+    userId: string,
+    executionId: string,
+  ) {
+    const result = await this.queryEngine.cancelExecution(orgId, executionId);
+
+    await this.auditService.log({
+      organizationId: orgId,
+      userId,
+      action: 'QUERY_CANCEL_REQUESTED',
+      resourceType: 'query-execution',
+      resourceId: executionId,
+      metadata: {},
+    });
+
+    return result;
   }
 }

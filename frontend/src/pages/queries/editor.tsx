@@ -15,7 +15,17 @@ const DEFAULT_SQL = '-- Escribe tu consulta SQL aquí\nSELECT 1 as test;';
 export default function QueryEditor() {
   const navigate = useNavigate();
   const { datasources, isLoading: isLoadingDss } = useDatasources();
-  const { runQuery, isRunning, saveQuery, isSaving, savedQueries, isLoadingQueries, deleteQuery } = useQueries();
+  const {
+    runQuery,
+    isRunning,
+    cancelQuery,
+    isCancelling,
+    saveQuery,
+    isSaving,
+    savedQueries,
+    isLoadingQueries,
+    deleteQuery,
+  } = useQueries();
   const { dashboards } = useDashboards();
 
   const [selectedDsId, setSelectedDsId] = useState<string>('');
@@ -25,6 +35,8 @@ export default function QueryEditor() {
   // Estados de ejecución
   const [queryResult, setQueryResult] = useState<QueryRunResponse | null>(null);
   const [executionError, setExecutionError] = useState<string | null>(null);
+  const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
+  const [cancelMessage, setCancelMessage] = useState<string | null>(null);
 
   // Estados de Guardado
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -110,6 +122,7 @@ export default function QueryEditor() {
     }
     setExecutionError(null);
     setQueryResult(null);
+    setCancelMessage(null);
     try {
       const editor = editorRef.current;
       const selection = editor?.getSelection();
@@ -118,14 +131,32 @@ export default function QueryEditor() {
           ? editor.getModel()?.getValueInRange(selection).trim()
           : '';
       const querySql = selectedSql || editor?.getValue() || sqlCode;
+      const executionId = crypto.randomUUID();
+      setPendingExecutionId(executionId);
       const res = await runQuery({
         datasourceId: selectedDsId,
         querySql,
+        executionId,
       });
       setQueryResult(res);
     } catch (err: any) {
       setExecutionError(
         err.response?.data?.message || 'Error al ejecutar la consulta SQL. Revisa tu sintaxis.'
+      );
+    } finally {
+      setPendingExecutionId(null);
+      setCancelMessage(null);
+    }
+  };
+
+  const handleCancelExecution = async () => {
+    if (!pendingExecutionId) return;
+    setCancelMessage('Cancelando consulta...');
+    try {
+      await cancelQuery(pendingExecutionId);
+    } catch (err: any) {
+      setCancelMessage(
+        err.response?.data?.message || 'No fue posible cancelar la consulta.',
       );
     }
   };
@@ -307,21 +338,40 @@ export default function QueryEditor() {
 
         {/* Row 2: Primary Action */}
         <div>
-          <button
-            onClick={handleRun}
-            disabled={isRunning || !selectedDsId}
-            className="flex items-center gap-1.5 btn-retro-primary font-mono text-xs disabled:opacity-50"
-          >
-            {isRunning ? (
-              <>
-                <Loader2 className="animate-spin h-3.5 w-3.5 text-[#23251d]" /> Ejecutando...
-              </>
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5 text-[#23251d]" /> Ejecutar SQL (Ctrl+↵)
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRun}
+              disabled={isRunning || !selectedDsId}
+              className="flex items-center gap-1.5 btn-retro-primary font-mono text-xs disabled:opacity-50"
+            >
+              {isRunning ? (
+                <>
+                  <Loader2 className="animate-spin h-3.5 w-3.5 text-[#23251d]" /> Ejecutando...
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5 text-[#23251d]" /> Ejecutar SQL (Ctrl+↵)
+                </>
+              )}
+            </button>
+            {isRunning && pendingExecutionId ? (
+              <button
+                onClick={handleCancelExecution}
+                disabled={isCancelling}
+                className="flex items-center gap-1.5 rounded-xl border-2 border-red-700 bg-white px-4 py-2 font-mono text-xs font-bold text-red-700 shadow-[2px_2px_0px_0px_#b91c1c] disabled:opacity-50"
+              >
+                {isCancelling ? (
+                  <Loader2 className="animate-spin h-3.5 w-3.5" />
+                ) : (
+                  <X className="h-3.5 w-3.5" />
+                )}
+                {isCancelling ? 'Cancelando...' : 'Cancelar'}
+              </button>
+            ) : null}
+          </div>
+          {isRunning && cancelMessage ? (
+            <p className="mt-2 text-xs font-mono text-red-700">{cancelMessage}</p>
+          ) : null}
         </div>
       </div>
 

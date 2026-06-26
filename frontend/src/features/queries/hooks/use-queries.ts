@@ -15,6 +15,7 @@ export interface QueryRunResponse {
   rows: Record<string, any>[];
   rowCount: number;
   durationMs: number;
+  executionId: string;
 }
 
 export function useQueries() {
@@ -31,8 +32,21 @@ export function useQueries() {
 
   // Ejecutar SQL libre
   const runMutation = useMutation({
-    mutationFn: async (payload: { datasourceId: string; querySql: string }) => {
+    mutationFn: async (payload: {
+      datasourceId: string;
+      querySql: string;
+      executionId?: string;
+    }) => {
       const { data } = await apiClient.post<QueryRunResponse>('/queries/run', payload);
+      return data;
+    },
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async (executionId: string) => {
+      const { data } = await apiClient.post<{ executionId: string; status: string }>(
+        `/queries/cancel/${executionId}`,
+      );
       return data;
     },
   });
@@ -66,6 +80,8 @@ export function useQueries() {
     runQuery: runMutation.mutateAsync,
     isRunning: runMutation.isPending,
     runError: runMutation.error,
+    cancelQuery: cancelMutation.mutateAsync,
+    isCancelling: cancelMutation.isPending,
     saveQuery: saveMutation.mutateAsync,
     isSaving: saveMutation.isPending,
     deleteQuery: deleteMutation.mutate,

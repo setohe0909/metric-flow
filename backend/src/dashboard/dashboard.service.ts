@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateDashboardDto, UpdateDashboardDto } from './dto/dashboard.dto';
 import * as crypto from 'crypto';
 import { QueriesService } from '../queries/queries.service';
+import { AuditService } from '../audit/audit.service';
 
 const DASHBOARD_LIST_VIEW = {
   id: true,
@@ -37,6 +38,7 @@ export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly queriesService: QueriesService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(orgId: string, userId: string, dto: CreateDashboardDto) {
@@ -113,7 +115,12 @@ export class DashboardService {
     return dashboard;
   }
 
-  async setPublished(orgId: string, id: string, published: boolean) {
+  async setPublished(
+    orgId: string,
+    userId: string | null,
+    id: string,
+    published: boolean,
+  ) {
     const result = await this.prisma.dashboard.updateMany({
       where: { id, organizationId: orgId },
       data: { publishedAt: published ? new Date() : null },
@@ -121,6 +128,14 @@ export class DashboardService {
     if (result.count === 0) {
       throw new BadRequestException('Dashboard no encontrado');
     }
+    await this.auditService.log({
+      organizationId: orgId,
+      userId,
+      action: published ? 'DASHBOARD_PUBLISHED' : 'DASHBOARD_UNPUBLISHED',
+      resourceType: 'dashboard',
+      resourceId: id,
+      metadata: {},
+    });
     return this.prisma.dashboard.findUnique({ where: { id } });
   }
 
@@ -224,7 +239,10 @@ export class DashboardService {
   async getPublicDashboard(token: string) {
     const dashboard = await this.prisma.dashboard.findFirst({
       where: { shareToken: token, isPublic: true },
-      select: DASHBOARD_DETAIL_VIEW,
+      select: {
+        organizationId: true,
+        ...DASHBOARD_DETAIL_VIEW,
+      },
     });
 
     if (!dashboard) {
@@ -233,7 +251,20 @@ export class DashboardService {
       );
     }
 
-    return dashboard;
+    const { organizationId, ...publicDashboard } = dashboard;
+
+    await this.auditService.log({
+      organizationId,
+      userId: null,
+      action: 'DASHBOARD_PUBLIC_VIEWED',
+      resourceType: 'dashboard-share',
+      resourceId: token,
+      metadata: {
+        dashboardId: dashboard.id,
+      },
+    });
+
+    return publicDashboard;
   }
 
   async getPublicWidgetData(token: string, widgetId: string): Promise<any> {

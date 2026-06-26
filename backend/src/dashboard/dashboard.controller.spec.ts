@@ -15,13 +15,14 @@ describe('DashboardController publication', () => {
     dashboardService.setPublished.mockResolvedValue({ id: 'dashboard-1' });
 
     await controller.setPublished(
-      { orgId: 'org-1', userRole: 'EDITOR' },
+      { orgId: 'org-1', userRole: 'EDITOR', user: { id: 'user-1' } },
       'dashboard-1',
       { published: true },
     );
 
     expect(dashboardService.setPublished).toHaveBeenCalledWith(
       'org-1',
+      'user-1',
       'dashboard-1',
       true,
     );
@@ -30,7 +31,7 @@ describe('DashboardController publication', () => {
   it('rejects a READER publishing a dashboard', () => {
     expect(() =>
       controller.setPublished(
-        { orgId: 'org-1', userRole: 'READER' },
+        { orgId: 'org-1', userRole: 'READER', user: { id: 'user-1' } },
         'dashboard-1',
         { published: true },
       ),

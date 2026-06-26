@@ -25,6 +25,7 @@ model User {
   queries      Query[]
   dashboards   Dashboard[]
   executions   Execution[]
+  auditLogs    AuditLog[]
   installation Installation? @relation("InstallationAdministrator")
 
   @@map("users")
@@ -41,6 +42,7 @@ model Organization {
   queries          Query[]
   dashboards       Dashboard[]
   executions       Execution[]
+  auditLogs        AuditLog[]
   scheduledQueries ScheduledQuery[]
   installation     Installation?
 
@@ -173,6 +175,24 @@ model Execution {
   user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("executions")
+}
+
+model AuditLog {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String?      @map("organization_id") @db.Uuid
+  userId         String?      @map("user_id") @db.Uuid
+  action         String
+  resourceType   String       @map("resource_type")
+  resourceId     String?      @map("resource_id")
+  metadata       Json?
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt], map: "audit_logs_org_created_at_idx")
+  @@index([action, createdAt], map: "audit_logs_action_created_at_idx")
+  @@map("audit_logs")
 }
 
 model ScheduledQuery {

@@ -20,11 +20,19 @@ interface QueryResult {
   rowCount: number;
 }
 
+interface ActiveExecution {
+  organizationId?: string;
+  cancel: () => Promise<void> | void;
+  cancelRequested: boolean;
+  cancelReason?: 'user' | 'timeout';
+}
+
 @Injectable()
 export class QueryEngineService implements OnModuleDestroy {
   // Caché de pools de conexión en memoria para PostgreSQL y MySQL
   private pgPools = new Map<string, pg.Pool>();
   private mysqlPools = new Map<string, mysql.Pool>();
+  private activeExecutions = new Map<string, ActiveExecution>();
 
   constructor(private readonly sqlReadOnlyPolicy: SqlReadOnlyPolicy) {}
 
@@ -45,15 +53,39 @@ export class QueryEngineService implements OnModuleDestroy {
     sql: string,
     datasourceId?: string,
     orgId?: string,
+    executionId?: string,
   ): Promise<QueryResult> {
     // 1. Validar que la consulta sea de solo lectura y aplicar límites.
     const safeSql = this.sqlReadOnlyPolicy.prepare(type, sql);
 
     // 2. Ejecutar según el tipo de base de datos con un timeout de 30 segundos
-    return this.withQueryTimeout(
-      this.runRawQuery(type, settings, safeSql, datasourceId, orgId),
-      30000,
-    );
+    try {
+      return await this.withQueryTimeout(
+        this.runRawQuery(
+          type,
+          settings,
+          safeSql,
+          datasourceId,
+          orgId,
+          executionId,
+        ),
+        30000,
+        orgId,
+        executionId,
+      );
+    } catch (error) {
+      if (
+        executionId &&
+        this.activeExecutions.get(executionId)?.cancelReason === 'user'
+      ) {
+        throw new BadRequestException('La consulta fue cancelada.');
+      }
+      throw error;
+    } finally {
+      if (executionId) {
+        this.activeExecutions.delete(executionId);
+      }
+    }
   }
 
   // Método para probar la conexión
@@ -195,20 +227,33 @@ export class QueryEngineService implements OnModuleDestroy {
     sql: string,
     datasourceId?: string,
     orgId?: string,
+    executionId?: string,
   ): Promise<QueryResult> {
     switch (type) {
       case 'postgres':
-        return this.runPostgresQuery(settings, sql, datasourceId);
+        return this.runPostgresQuery(
+          settings,
+          sql,
+          datasourceId,
+          orgId,
+          executionId,
+        );
       case 'mysql':
-        return this.runMysqlQuery(settings, sql, datasourceId);
+        return this.runMysqlQuery(
+          settings,
+          sql,
+          datasourceId,
+          orgId,
+          executionId,
+        );
       case 'sqlite':
       case 'csv':
         // Tanto SQLite como CSV (que se importa como SQLite) corren sobre SQLite
-        return this.runSqliteQuery(settings, sql, orgId);
+        return this.runSqliteQuery(settings, sql, orgId, executionId);
       case 'bigquery':
-        return this.runBigQueryQuery(settings, sql);
+        return this.runBigQueryQuery(settings, sql, orgId, executionId);
       case 'snowflake':
-        return this.runSnowflakeQuery(settings, sql);
+        return this.runSnowflakeQuery(settings, sql, orgId, executionId);
       default:
         throw new BadRequestException('Tipo de base de datos no soportado');
     }
@@ -219,6 +264,8 @@ export class QueryEngineService implements OnModuleDestroy {
     settings: ConnectionSettingsDto,
     sql: string,
     datasourceId?: string,
+    orgId?: string,
+    executionId?: string,
   ): Promise<QueryResult> {
     let pool: pg.Pool;
 
@@ -245,6 +292,15 @@ export class QueryEngineService implements OnModuleDestroy {
     let transactionStarted = false;
     try {
       client = await pool.connect();
+      if (executionId) {
+        this.activeExecutions.set(executionId, {
+          organizationId: orgId,
+          cancelRequested: false,
+          cancel: () => {
+            client?.release(new Error('Query cancelled'));
+          },
+        });
+      }
       await client.query('BEGIN READ ONLY');
       transactionStarted = true;
       const res = await client.query({ text: sql, rowMode: 'array' });
@@ -288,6 +344,8 @@ export class QueryEngineService implements OnModuleDestroy {
     settings: ConnectionSettingsDto,
     sql: string,
     datasourceId?: string,
+    orgId?: string,
+    executionId?: string,
   ): Promise<QueryResult> {
     let pool: mysql.Pool;
 
@@ -315,6 +373,15 @@ export class QueryEngineService implements OnModuleDestroy {
     let transactionStarted = false;
     try {
       connection = await pool.getConnection();
+      if (executionId) {
+        this.activeExecutions.set(executionId, {
+          organizationId: orgId,
+          cancelRequested: false,
+          cancel: () => {
+            connection?.destroy();
+          },
+        });
+      }
       await connection.query('START TRANSACTION READ ONLY');
       transactionStarted = true;
       const [rows, fields] = await connection.query(sql);
@@ -345,6 +412,7 @@ export class QueryEngineService implements OnModuleDestroy {
     settings: ConnectionSettingsDto,
     sql: string,
     orgId?: string,
+    executionId?: string,
   ): Promise<QueryResult> {
     if (!orgId) {
       throw new BadRequestException(
@@ -389,6 +457,14 @@ export class QueryEngineService implements OnModuleDestroy {
         },
       );
 
+      if (executionId) {
+        this.activeExecutions.set(executionId, {
+          organizationId: orgId,
+          cancelRequested: false,
+          cancel: () => db.interrupt(),
+        });
+      }
+
       db.all(sql, [], (err, rows: any[]) => {
         if (err) {
           db.close();
@@ -412,6 +488,8 @@ export class QueryEngineService implements OnModuleDestroy {
   private async runBigQueryQuery(
     settings: ConnectionSettingsDto,
     sql: string,
+    orgId?: string,
+    executionId?: string,
   ): Promise<QueryResult> {
     if (!settings.projectId || !settings.serviceAccountJson) {
       throw new BadRequestException(
@@ -433,6 +511,15 @@ export class QueryEngineService implements OnModuleDestroy {
         query: sql,
         useLegacySql: false,
       });
+      if (executionId) {
+        this.activeExecutions.set(executionId, {
+          organizationId: orgId,
+          cancelRequested: false,
+          cancel: async () => {
+            await job.cancel();
+          },
+        });
+      }
       const [rows] = await job.getQueryResults();
 
       const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -451,6 +538,8 @@ export class QueryEngineService implements OnModuleDestroy {
   private async runSnowflakeQuery(
     settings: ConnectionSettingsDto,
     sql: string,
+    orgId?: string,
+    executionId?: string,
   ): Promise<QueryResult> {
     if (!settings.account || !settings.username || !settings.password) {
       throw new BadRequestException(
@@ -477,7 +566,7 @@ export class QueryEngineService implements OnModuleDestroy {
           );
         }
 
-        conn.execute({
+        const statement = conn.execute({
           sqlText: sql,
           complete: (execErr, _stmt, rows) => {
             // Destroy the connection regardless of outcome
@@ -505,6 +594,17 @@ export class QueryEngineService implements OnModuleDestroy {
             });
           },
         });
+
+        if (executionId) {
+          this.activeExecutions.set(executionId, {
+            organizationId: orgId,
+            cancelRequested: false,
+            cancel: () =>
+              new Promise<void>((resolveCancel) => {
+                statement.cancel(() => resolveCancel());
+              }),
+          });
+        }
       });
     });
   }
@@ -514,21 +614,26 @@ export class QueryEngineService implements OnModuleDestroy {
   private async withQueryTimeout<T>(
     operation: Promise<T>,
     ms: number,
+    orgId?: string,
+    executionId?: string,
   ): Promise<T> {
     let timeout: NodeJS.Timeout | undefined;
     try {
       return await Promise.race([
         operation,
         new Promise<T>((_, reject) => {
-          timeout = setTimeout(
-            () =>
-              reject(
-                new InternalServerErrorException(
-                  'Query Timeout: La consulta superó el límite de 30 segundos.',
-                ),
+          timeout = setTimeout(async () => {
+            if (orgId && executionId) {
+              await this.cancelExecution(orgId, executionId, 'timeout').catch(
+                () => {},
+              );
+            }
+            reject(
+              new InternalServerErrorException(
+                'Query Timeout: La consulta superó el límite de 30 segundos.',
               ),
-            ms,
-          );
+            );
+          }, ms);
         }),
       ]);
     } finally {
@@ -536,5 +641,28 @@ export class QueryEngineService implements OnModuleDestroy {
         clearTimeout(timeout);
       }
     }
+  }
+
+  async cancelExecution(
+    orgId: string,
+    executionId: string,
+    reason: 'user' | 'timeout' = 'user',
+  ) {
+    const active = this.activeExecutions.get(executionId);
+
+    if (!active || active.organizationId !== orgId) {
+      throw new BadRequestException('No hay una consulta activa con ese ID.');
+    }
+
+    if (!active.cancelRequested) {
+      active.cancelRequested = true;
+      active.cancelReason = reason;
+      await Promise.resolve(active.cancel());
+    }
+
+    return {
+      executionId,
+      status: 'cancel-requested' as const,
+    };
   }
 }

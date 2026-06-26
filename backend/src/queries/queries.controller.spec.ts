@@ -26,4 +26,32 @@ describe('QueriesController', () => {
       dto,
     );
   });
+
+  it('forwards cancellation requests for active executions', async () => {
+    const queriesService = {
+      runRaw: jest.fn(),
+      cancelActiveExecution: jest.fn().mockResolvedValue({
+        executionId: 'execution-1',
+        status: 'cancel-requested',
+      }),
+    };
+    const controller = new QueriesController(queriesService as never);
+    const request = {
+      orgId: 'org-1',
+      user: { id: 'user-1' },
+    };
+
+    await expect(
+      controller.cancelExecution(request, 'execution-1'),
+    ).resolves.toEqual({
+      executionId: 'execution-1',
+      status: 'cancel-requested',
+    });
+
+    expect(queriesService.cancelActiveExecution).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      'execution-1',
+    );
+  });
 });

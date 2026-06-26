@@ -48,6 +48,10 @@ describe('QueryEngineService read-only transactions', () => {
     mockMysqlConnection.release.mockReturnValue(undefined);
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('executes PostgreSQL queries inside a read-only transaction', async () => {
     mockPgClient.query
       .mockResolvedValueOnce({})
@@ -114,5 +118,51 @@ describe('QueryEngineService read-only transactions', () => {
       'SELECT id FROM users',
     );
     expect(mockMysqlConnection.query).toHaveBeenNthCalledWith(3, 'COMMIT');
+  });
+
+  it('preserves the timeout error when automatic cancellation is triggered', async () => {
+    jest.useFakeTimers();
+    const cancel = jest.fn();
+    jest
+      .spyOn(service as never, 'runRawQuery' as never)
+      .mockImplementation(
+        async (
+          _type: string,
+          _settings: unknown,
+          _sql: string,
+          _datasourceId?: string,
+          orgId?: string,
+          executionId?: string,
+        ) => {
+          (service as any).activeExecutions.set(executionId, {
+            organizationId: orgId,
+            cancelRequested: false,
+            cancel,
+          });
+          return await new Promise(() => {});
+        },
+      );
+
+    const execution = service.executeQuery(
+      'postgres',
+      {
+        host: 'localhost',
+        username: 'reader',
+        password: 'secret',
+        database: 'analytics',
+      },
+      'SELECT 1',
+      undefined,
+      'org-1',
+      'execution-1',
+    );
+    const assertion = expect(execution).rejects.toThrow(
+      'Query Timeout: La consulta superó el límite de 30 segundos.',
+    );
+
+    await jest.advanceTimersByTimeAsync(30000);
+
+    await assertion;
+    expect(cancel).toHaveBeenCalledTimes(1);
   });
 });

@@ -92,7 +92,12 @@ export class DashboardController {
         'Los lectores no pueden publicar dashboards.',
       );
     }
-    return this.dashboardService.setPublished(req.orgId, id, dto.published);
+    return this.dashboardService.setPublished(
+      req.orgId,
+      req.user.id,
+      id,
+      dto.published,
+    );
   }
 
   @UseGuards(JwtAuthGuard, TenantGuard)

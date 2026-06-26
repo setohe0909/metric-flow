@@ -12,6 +12,7 @@ import { EmailService } from './email.service';
 import { CreateScheduleDto, UpdateScheduleDto } from './dto/scheduler.dto';
 import parseExpression from 'cron-parser';
 import { ScheduledQuery, Query, Prisma } from '@prisma/client';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class SchedulerService {
@@ -22,6 +23,7 @@ export class SchedulerService {
     private readonly datasourceService: DatasourceService,
     private readonly queryEngine: QueryEngineService,
     private readonly emailService: EmailService,
+    private readonly auditService: AuditService,
   ) {}
 
   calculateNextRun(cronExpression: string, fromDate = new Date()): Date {
@@ -48,7 +50,7 @@ export class SchedulerService {
 
     const nextRunAt = this.calculateNextRun(dto.cronExpression);
 
-    return this.prisma.scheduledQuery.create({
+    const schedule = await this.prisma.scheduledQuery.create({
       data: {
         organizationId: orgId,
         queryId: dto.queryId,
@@ -64,6 +66,20 @@ export class SchedulerService {
         query: true,
       },
     });
+
+    await this.auditService.log({
+      organizationId: orgId,
+      userId: null,
+      action: 'SCHEDULE_CREATED',
+      resourceType: 'schedule',
+      resourceId: schedule.id,
+      metadata: {
+        queryId: dto.queryId,
+        cronExpression: dto.cronExpression,
+      },
+    });
+
+    return schedule;
   }
 
   async findAll(orgId: string) {
@@ -123,21 +139,48 @@ export class SchedulerService {
       updateData.nextRunAt = null;
     }
 
-    return this.prisma.scheduledQuery.update({
+    const updated = await this.prisma.scheduledQuery.update({
       where: { id },
       data: updateData,
       include: {
         query: true,
       },
     });
+
+    await this.auditService.log({
+      organizationId: orgId,
+      userId: null,
+      action: 'SCHEDULE_UPDATED',
+      resourceType: 'schedule',
+      resourceId: id,
+      metadata: {
+        enabled: dto.enabled,
+        cronExpression: dto.cronExpression ?? schedule.cronExpression,
+      },
+    });
+
+    return updated;
   }
 
   async remove(orgId: string, id: string) {
-    await this.findOne(orgId, id);
+    const schedule = await this.findOne(orgId, id);
 
-    return this.prisma.scheduledQuery.delete({
+    const deleted = await this.prisma.scheduledQuery.delete({
       where: { id },
     });
+
+    await this.auditService.log({
+      organizationId: orgId,
+      userId: null,
+      action: 'SCHEDULE_DELETED',
+      resourceType: 'schedule',
+      resourceId: id,
+      metadata: {
+        queryId: schedule.queryId,
+      },
+    });
+
+    return deleted;
   }
 
   async getHistory(orgId: string, scheduleId: string) {
@@ -313,6 +356,19 @@ export class SchedulerService {
           recipientsSent: schedule.recipients,
         },
       });
+
+      await this.auditService.log({
+        organizationId: schedule.organizationId,
+        userId: null,
+        action: 'SCHEDULE_RUN_SUCCEEDED',
+        resourceType: 'schedule',
+        resourceId: schedule.id,
+        metadata: {
+          queryId: schedule.query.id,
+          rowCount: rawResult.rowCount,
+          durationMs,
+        },
+      });
     } catch (err: unknown) {
       const errorInstance = err instanceof Error ? err : new Error(String(err));
       errorMessage =
@@ -353,6 +409,18 @@ export class SchedulerService {
         .catch((e) =>
           this.logger.error('Failed to save history log on failure:', e),
         );
+
+      await this.auditService.log({
+        organizationId: schedule.organizationId,
+        userId: null,
+        action: 'SCHEDULE_RUN_FAILED',
+        resourceType: 'schedule',
+        resourceId: schedule.id,
+        metadata: {
+          queryId: schedule.query.id,
+          errorMessage,
+        },
+      });
     }
   }
 

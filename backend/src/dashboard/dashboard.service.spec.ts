@@ -16,12 +16,19 @@ describe('DashboardService publication', () => {
   const queriesService = {
     runRaw: jest.fn(),
   };
+  const auditService = {
+    log: jest.fn(),
+  };
 
   let service: DashboardService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new DashboardService(prisma as never, queriesService as never);
+    service = new DashboardService(
+      prisma as never,
+      queriesService as never,
+      auditService as never,
+    );
   });
 
   afterEach(() => {
@@ -98,11 +105,19 @@ describe('DashboardService publication', () => {
       publishedAt: new Date(),
     });
 
-    await service.setPublished('org-1', 'dashboard-1', true);
+    await service.setPublished('org-1', 'user-1', 'dashboard-1', true);
 
     expect(prisma.dashboard.updateMany).toHaveBeenCalledWith({
       where: { id: 'dashboard-1', organizationId: 'org-1' },
       data: { publishedAt: new Date('2026-06-25T00:00:00Z') },
+    });
+    expect(auditService.log).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      userId: 'user-1',
+      action: 'DASHBOARD_PUBLISHED',
+      resourceType: 'dashboard',
+      resourceId: 'dashboard-1',
+      metadata: {},
     });
   });
 
@@ -110,7 +125,7 @@ describe('DashboardService publication', () => {
     prisma.dashboard.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(
-      service.setPublished('org-1', 'dashboard-2', true),
+      service.setPublished('org-1', 'user-1', 'dashboard-2', true),
     ).rejects.toThrow(new BadRequestException('Dashboard no encontrado'));
   });
 
@@ -178,5 +193,27 @@ describe('DashboardService publication', () => {
         querySql: 'SELECT * FROM matches',
       },
     );
+  });
+
+  it('logs public dashboard views for auditing', async () => {
+    prisma.dashboard.findFirst.mockResolvedValue({
+      id: 'dashboard-1',
+      organizationId: 'org-1',
+      name: 'Revenue',
+      widgets: [],
+    });
+
+    await service.getPublicDashboard('share-token');
+
+    expect(auditService.log).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      userId: null,
+      action: 'DASHBOARD_PUBLIC_VIEWED',
+      resourceType: 'dashboard-share',
+      resourceId: 'share-token',
+      metadata: {
+        dashboardId: 'dashboard-1',
+      },
+    });
   });
 });

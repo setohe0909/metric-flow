@@ -13,6 +13,7 @@ import { WidgetModule } from './widget/widget.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { SetupModule } from './setup/setup.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { SetupModule } from './setup/setup.module';
     WidgetModule,
     SchedulerModule,
     SetupModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],

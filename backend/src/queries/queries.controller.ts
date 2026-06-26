@@ -32,6 +32,19 @@ export class QueriesController {
     );
   }
 
+  @Post('cancel/:executionId')
+  @HttpCode(HttpStatus.OK)
+  async cancelExecution(
+    @Request() req,
+    @Param('executionId') executionId: string,
+  ) {
+    return this.queriesService.cancelActiveExecution(
+      req.orgId,
+      req.user.id,
+      executionId,
+    );
+  }
+
   // --- CRUD Rutas (Sprint 3) ---
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -61,6 +74,6 @@ export class QueriesController {
         'Los visualizadores no pueden eliminar consultas.',
       );
     }
-    return this.queriesService.remove(req.orgId, id);
+    return this.queriesService.remove(req.orgId, req.user.id, id);
   }
 }

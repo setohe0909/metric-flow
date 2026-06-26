@@ -5,6 +5,7 @@ import { DatasourceService } from '../datasource/datasource.service';
 import { QueryEngineService } from '../query-engine/query-engine.service';
 import { EmailService } from './email.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service';
 
 describe('SchedulerService', () => {
   let service: SchedulerService;
@@ -41,6 +42,10 @@ describe('SchedulerService', () => {
     sendEmailReport: jest.fn().mockResolvedValue(true),
   };
 
+  const mockAuditService = {
+    log: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -49,6 +54,7 @@ describe('SchedulerService', () => {
         { provide: DatasourceService, useValue: mockDatasourceService },
         { provide: QueryEngineService, useValue: mockQueryEngineService },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
 
