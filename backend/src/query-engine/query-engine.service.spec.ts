@@ -182,6 +182,67 @@ describe('QueryEngineService read-only transactions', () => {
     expect(mockMssqlPool.close).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps SQL Server column metadata when the resultset is empty', async () => {
+    mockMssqlRequest.query.mockResolvedValue({
+      recordset: Object.assign([], {
+        columns: {
+          id: { name: 'id' },
+          email: { name: 'email' },
+        },
+      }),
+    });
+
+    await expect(
+      service.executeQuery(
+        'sqlserver',
+        {
+          host: 'localhost',
+          port: 1433,
+          username: 'reader',
+          password: 'secret',
+          database: 'analytics',
+          ssl: true,
+        },
+        'SELECT id, email FROM users WHERE 1 = 0',
+      ),
+    ).resolves.toMatchObject({
+      columns: ['id', 'email'],
+      rows: [],
+      rowCount: 0,
+    });
+  });
+
+  it('filters SQL Server schema discovery by the configured schema when present', async () => {
+    const runRawQuerySpy = jest
+      .spyOn(service as never, 'runRawQuery' as never)
+      .mockResolvedValue({
+        columns: ['tableName', 'columnName'],
+        rows: [{ tableName: 'users', columnName: 'id' }],
+        rowCount: 1,
+      });
+
+    await expect(
+      service.getDbSchema(
+        'sqlserver',
+        {
+          host: 'localhost',
+          port: 1433,
+          username: 'reader',
+          password: 'secret',
+          database: 'analytics',
+          schema: 'reporting',
+        },
+        'org-1',
+      ),
+    ).resolves.toEqual([{ table: 'users', columns: ['id'] }]);
+
+    expect(runRawQuerySpy).toHaveBeenCalledWith(
+      'sqlserver',
+      expect.objectContaining({ schema: 'reporting' }),
+      expect.stringContaining("TABLE_SCHEMA = 'reporting'"),
+    );
+  });
+
   it('preserves the timeout error when automatic cancellation is triggered', async () => {
     jest.useFakeTimers();
     const cancel = jest.fn();

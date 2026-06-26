@@ -148,12 +148,16 @@ export class QueryEngineService implements OnModuleDestroy {
       const result = await this.runRawQuery(type, settings, sql);
       return this.formatSchemaResult(result.rows);
     } else if (type === 'sqlserver') {
+      const schemaFilter = settings.schema
+        ? `WHERE TABLE_SCHEMA = '${settings.schema.replace(/'/g, "''")}'`
+        : '';
       const sql = `
         SELECT
           TABLE_NAME as tableName,
           COLUMN_NAME as columnName
         FROM
           INFORMATION_SCHEMA.COLUMNS
+        ${schemaFilter}
         ORDER BY
           TABLE_SCHEMA,
           TABLE_NAME,
@@ -345,11 +349,12 @@ export class QueryEngineService implements OnModuleDestroy {
       await transaction.rollback();
       transactionStarted = false;
 
-      const rows = result.recordset ?? [];
+      const recordset = result.recordset ?? [];
+      const rows = [...recordset];
       const columns =
         rows.length > 0
           ? Object.keys(rows[0] as Record<string, unknown>)
-          : Object.keys(result.recordset?.columns ?? {});
+          : Object.keys(recordset.columns ?? {});
 
       return {
         columns,

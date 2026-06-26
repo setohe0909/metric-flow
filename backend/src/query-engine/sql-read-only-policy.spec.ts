@@ -55,6 +55,12 @@ describe('SqlReadOnlyPolicy', () => {
     expect(policy.prepare('postgres', sql)).toBe(sql);
   });
 
+  it('preserves an explicit TOP clause for SQL Server', () => {
+    const sql = 'SELECT TOP 25 id, email FROM users ORDER BY created_at DESC';
+
+    expect(policy.prepare('sqlserver', sql)).toBe(sql);
+  });
+
   it.each([
     'UPDATE users SET active = true',
     'DELETE FROM users',

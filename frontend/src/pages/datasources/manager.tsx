@@ -106,6 +106,17 @@ export default function DatasourceManager() {
         schema: schema || 'PUBLIC',
       };
     }
+    if (dbType === 'sqlserver') {
+      return {
+        host,
+        port: Number(port),
+        username,
+        password,
+        database,
+        ssl,
+        schema: schema || undefined,
+      };
+    }
     return {
       host,
       port: Number(port),
@@ -598,6 +609,21 @@ export default function DatasourceManager() {
                     placeholder="production_db"
                   />
                 </div>
+
+                {dbType === 'sqlserver' && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                      Schema por defecto
+                    </label>
+                    <input
+                      type="text"
+                      value={schema}
+                      onChange={(e) => setSchema(e.target.value)}
+                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      placeholder="dbo (opcional)"
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 py-1">
                   <input
