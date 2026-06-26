@@ -27,7 +27,7 @@ export default function DatasourceManager() {
   const [expandedPolicyId, setExpandedPolicyId] = useState<string | null>(null);
 
   const [showForm, setShowForm] = useState(false);
-  const [dbType, setDbType] = useState<'postgres' | 'mysql' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake'>('postgres');
+  const [dbType, setDbType] = useState<'postgres' | 'mysql' | 'sqlserver' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake'>('postgres');
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState(5432);
@@ -76,12 +76,13 @@ export default function DatasourceManager() {
     setSchema('');
   };
 
-  const handleDbTypeChange = (type: 'postgres' | 'mysql' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake') => {
+  const handleDbTypeChange = (type: 'postgres' | 'mysql' | 'sqlserver' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake') => {
     setDbType(type);
     setTestResult(null);
     setSelectedFile(null);
     if (type === 'postgres') setPort(5432);
     else if (type === 'mysql') setPort(3306);
+    else if (type === 'sqlserver') setPort(1433);
   };
 
   const buildConnectionSettings = () => {
@@ -274,7 +275,7 @@ export default function DatasourceManager() {
                 Tipo de Base de Datos
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {(['postgres', 'mysql', 'sqlite', 'csv', 'bigquery', 'snowflake'] as const).map((type) => (
+                {(['postgres', 'mysql', 'sqlserver', 'sqlite', 'csv', 'bigquery', 'snowflake'] as const).map((type) => (
                   <button
                     key={type}
                     type="button"
@@ -287,7 +288,19 @@ export default function DatasourceManager() {
                   >
                     <Database className="h-5 w-5" />
                     <span className="capitalize">
-                      {type === 'postgres' ? 'PostgreSQL' : type === 'mysql' ? 'MySQL' : type === 'sqlite' ? 'SQLite' : type === 'csv' ? 'CSV' : type === 'bigquery' ? 'BigQuery' : 'Snowflake'}
+                      {type === 'postgres'
+                        ? 'PostgreSQL'
+                        : type === 'mysql'
+                        ? 'MySQL'
+                        : type === 'sqlserver'
+                        ? 'SQL Server'
+                        : type === 'sqlite'
+                        ? 'SQLite'
+                        : type === 'csv'
+                        ? 'CSV'
+                        : type === 'bigquery'
+                        ? 'BigQuery'
+                        : 'Snowflake'}
                     </span>
                   </button>
                 ))}
@@ -513,7 +526,7 @@ export default function DatasourceManager() {
                 </div>
               </>
             ) : (
-              /* Campos para bases de datos relacionales (Postgres / MySQL) */
+              /* Campos para bases de datos relacionales (Postgres / MySQL / SQL Server) */
               <>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
@@ -554,7 +567,7 @@ export default function DatasourceManager() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
-                      placeholder="postgres"
+                      placeholder={dbType === 'sqlserver' ? 'sa' : 'postgres'}
                     />
                   </div>
                   <div>
@@ -595,7 +608,7 @@ export default function DatasourceManager() {
                     className="h-4 w-4 rounded border-2 border-[#23251d] bg-white text-[#f7a501] focus:ring-0 cursor-pointer"
                   />
                   <label htmlFor="ssl" className="text-xs font-bold font-mono text-[#23251d] flex items-center gap-1.5 cursor-pointer">
-                    <Shield className="h-4 w-4 text-[#f7a501]" /> Requerir conexión segura (SSL)
+                    <Shield className="h-4 w-4 text-[#f7a501]" /> Requerir conexión segura (TLS/SSL)
                   </label>
                 </div>
               </>
@@ -689,7 +702,7 @@ export default function DatasourceManager() {
               </div>
               <h3 className="text-base font-extrabold text-[#23251d]">No hay conectores registrados</h3>
               <p className="text-xs text-[#4d4f46] max-w-sm mt-1 mb-6 leading-relaxed">
-                Conecta tu base de datos PostgreSQL, MySQL o SQLite para empezar a crear consultas SQL.
+                Conecta PostgreSQL, MySQL, SQL Server o SQLite para empezar a crear consultas SQL.
               </p>
               <button
                 onClick={() => setShowForm(true)}

@@ -19,6 +19,18 @@ const mockMysqlPool = {
   getConnection: jest.fn(),
   end: jest.fn(),
 };
+const mockMssqlRequest = {
+  query: jest.fn(),
+  cancel: jest.fn(),
+};
+const mockMssqlTransaction = {
+  begin: jest.fn(),
+  rollback: jest.fn(),
+};
+const mockMssqlPool = {
+  connect: jest.fn(),
+  close: jest.fn(),
+};
 
 jest.mock('pg', () => ({
   Pool: jest.fn(() => mockPgPool),
@@ -26,6 +38,15 @@ jest.mock('pg', () => ({
 
 jest.mock('mysql2/promise', () => ({
   createPool: jest.fn(() => mockMysqlPool),
+}));
+
+jest.mock('mssql', () => ({
+  ConnectionPool: jest.fn(() => mockMssqlPool),
+  Transaction: jest.fn(() => mockMssqlTransaction),
+  Request: jest.fn(() => mockMssqlRequest),
+  ISOLATION_LEVEL: {
+    READ_COMMITTED: 'READ_COMMITTED',
+  },
 }));
 
 describe('QueryEngineService read-only transactions', () => {
@@ -46,6 +67,12 @@ describe('QueryEngineService read-only transactions', () => {
     mockMysqlPool.getConnection.mockResolvedValue(mockMysqlConnection);
     mockMysqlPool.end.mockResolvedValue(undefined);
     mockMysqlConnection.release.mockReturnValue(undefined);
+
+    mockMssqlPool.connect.mockResolvedValue(mockMssqlPool);
+    mockMssqlPool.close.mockResolvedValue(undefined);
+    mockMssqlTransaction.begin.mockResolvedValue(undefined);
+    mockMssqlTransaction.rollback.mockResolvedValue(undefined);
+    mockMssqlRequest.cancel.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -118,6 +145,41 @@ describe('QueryEngineService read-only transactions', () => {
       'SELECT id FROM users',
     );
     expect(mockMysqlConnection.query).toHaveBeenNthCalledWith(3, 'COMMIT');
+  });
+
+  it('executes SQL Server queries inside a transaction that is rolled back', async () => {
+    mockMssqlRequest.query.mockResolvedValue({
+      recordset: [{ id: 1 }],
+    });
+
+    await expect(
+      service.executeQuery(
+        'sqlserver',
+        {
+          host: 'localhost',
+          port: 1433,
+          username: 'reader',
+          password: 'secret',
+          database: 'analytics',
+          ssl: true,
+        },
+        'SELECT id FROM users',
+      ),
+    ).resolves.toMatchObject({
+      columns: ['id'],
+      rows: [{ id: 1 }],
+      rowCount: 1,
+    });
+
+    expect(sqlPolicy.prepare).toHaveBeenCalledWith(
+      'sqlserver',
+      'SELECT id FROM users',
+    );
+    expect(mockMssqlPool.connect).toHaveBeenCalledTimes(1);
+    expect(mockMssqlTransaction.begin).toHaveBeenCalledWith('READ_COMMITTED');
+    expect(mockMssqlRequest.query).toHaveBeenCalledWith('SELECT id FROM users');
+    expect(mockMssqlTransaction.rollback).toHaveBeenCalledTimes(1);
+    expect(mockMssqlPool.close).toHaveBeenCalledTimes(1);
   });
 
   it('preserves the timeout error when automatic cancellation is triggered', async () => {

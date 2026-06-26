@@ -69,9 +69,20 @@ export class CreateDatasourceDto {
   @IsNotEmpty({ message: 'El nombre es obligatorio' })
   name: string;
 
-  @IsEnum(['postgres', 'mysql', 'sqlite', 'csv', 'bigquery', 'snowflake'], {
-    message: 'Tipo de base de datos no soportado',
-  })
+  @IsEnum(
+    [
+      'postgres',
+      'mysql',
+      'sqlserver',
+      'sqlite',
+      'csv',
+      'bigquery',
+      'snowflake',
+    ],
+    {
+      message: 'Tipo de base de datos no soportado',
+    },
+  )
   type: string;
 
   @IsObject()

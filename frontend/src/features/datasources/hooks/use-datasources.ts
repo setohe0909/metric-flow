@@ -4,7 +4,14 @@ import { apiClient } from '@/lib/api-client';
 export interface Datasource {
   id: string;
   name: string;
-  type: 'postgres' | 'mysql' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake';
+  type:
+    | 'postgres'
+    | 'mysql'
+    | 'sqlserver'
+    | 'sqlite'
+    | 'csv'
+    | 'bigquery'
+    | 'snowflake';
   connectionSettings: {
     host?: string;
     port?: number;
@@ -35,7 +42,7 @@ export function useDatasources() {
 
   // Crear conector
   const createMutation = useMutation({
-    mutationFn: async (newDs: Record<string, any>) => {
+    mutationFn: async (newDs: Record<string, unknown>) => {
       const { data } = await apiClient.post<Datasource>('/datasources', newDs);
       return data;
     },
@@ -46,7 +53,7 @@ export function useDatasources() {
 
   // Probar conexión
   const testMutation = useMutation({
-    mutationFn: async (connSettings: Record<string, any>) => {
+    mutationFn: async (connSettings: Record<string, unknown>) => {
       const { data } = await apiClient.post<{ success: boolean; message: string }>('/datasources/test', connSettings);
       return data;
     },

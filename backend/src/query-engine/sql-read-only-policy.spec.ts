@@ -8,12 +8,14 @@ describe('SqlReadOnlyPolicy', () => {
     policy = new SqlReadOnlyPolicy();
   });
 
-  it.each(['postgres', 'mysql'])(
+  it.each([
+    ['postgres', 'SELECT * FROM users LIMIT 1000;'],
+    ['mysql', 'SELECT * FROM users LIMIT 1000;'],
+    ['sqlserver', 'SELECT TOP 1000 * FROM [users];'],
+  ])(
     'accepts a single SELECT for %s and applies a row limit',
-    (dialect) => {
-      expect(policy.prepare(dialect, 'SELECT * FROM users')).toBe(
-        'SELECT * FROM users LIMIT 1000;',
-      );
+    (dialect, expectedSql) => {
+      expect(policy.prepare(dialect, 'SELECT * FROM users')).toBe(expectedSql);
     },
   );
 

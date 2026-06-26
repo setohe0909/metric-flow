@@ -6,6 +6,10 @@ type SqlAst = {
   limit?: {
     value?: unknown[];
   } | null;
+  top?: {
+    value?: number | string | null;
+    percent?: unknown;
+  } | null;
   into?: {
     position?: string | null;
   } | null;
@@ -16,6 +20,7 @@ type SqlAst = {
 const DIALECTS: Record<string, string> = {
   postgres: 'Postgresql',
   mysql: 'MySQL',
+  sqlserver: 'TransactSQL',
   sqlite: 'SQLite',
   csv: 'SQLite',
 };
@@ -82,6 +87,19 @@ export class SqlReadOnlyPolicy {
       throw new BadRequestException(
         'Solo se permiten consultas SQL de lectura.',
       );
+    }
+
+    if (datasourceType === 'sqlserver') {
+      if (ast.top?.value) {
+        return sql;
+      }
+
+      ast.top = {
+        value: 1000,
+        percent: null,
+      };
+
+      return `${this.parser.sqlify(ast as never, { database })};`;
     }
 
     if (ast.limit?.value?.length) {

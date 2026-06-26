@@ -12,6 +12,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { BigQuery } from '@google-cloud/bigquery';
 import * as snowflake from 'snowflake-sdk';
+import * as mssql from 'mssql';
 import { SqlReadOnlyPolicy } from './sql-read-only-policy';
 
 interface QueryResult {
@@ -32,6 +33,7 @@ export class QueryEngineService implements OnModuleDestroy {
   // Caché de pools de conexión en memoria para PostgreSQL y MySQL
   private pgPools = new Map<string, pg.Pool>();
   private mysqlPools = new Map<string, mysql.Pool>();
+  private mssqlPools = new Map<string, mssql.ConnectionPool>();
   private activeExecutions = new Map<string, ActiveExecution>();
 
   constructor(private readonly sqlReadOnlyPolicy: SqlReadOnlyPolicy) {}
@@ -43,6 +45,9 @@ export class QueryEngineService implements OnModuleDestroy {
     }
     for (const pool of this.mysqlPools.values()) {
       await pool.end().catch(() => {});
+    }
+    for (const pool of this.mssqlPools.values()) {
+      await pool.close().catch(() => {});
     }
   }
 
@@ -139,6 +144,20 @@ export class QueryEngineService implements OnModuleDestroy {
           table_schema = database()
         ORDER BY 
           table_name, ordinal_position;
+      `;
+      const result = await this.runRawQuery(type, settings, sql);
+      return this.formatSchemaResult(result.rows);
+    } else if (type === 'sqlserver') {
+      const sql = `
+        SELECT
+          TABLE_NAME as tableName,
+          COLUMN_NAME as columnName
+        FROM
+          INFORMATION_SCHEMA.COLUMNS
+        ORDER BY
+          TABLE_SCHEMA,
+          TABLE_NAME,
+          ORDINAL_POSITION;
       `;
       const result = await this.runRawQuery(type, settings, sql);
       return this.formatSchemaResult(result.rows);
@@ -246,6 +265,14 @@ export class QueryEngineService implements OnModuleDestroy {
           orgId,
           executionId,
         );
+      case 'sqlserver':
+        return this.runSqlServerQuery(
+          settings,
+          sql,
+          datasourceId,
+          orgId,
+          executionId,
+        );
       case 'sqlite':
       case 'csv':
         // Tanto SQLite como CSV (que se importa como SQLite) corren sobre SQLite
@@ -256,6 +283,89 @@ export class QueryEngineService implements OnModuleDestroy {
         return this.runSnowflakeQuery(settings, sql, orgId, executionId);
       default:
         throw new BadRequestException('Tipo de base de datos no soportado');
+    }
+  }
+
+  // --- SQL SERVER ENGINE ---
+  private async runSqlServerQuery(
+    settings: ConnectionSettingsDto,
+    sql: string,
+    datasourceId?: string,
+    orgId?: string,
+    executionId?: string,
+  ): Promise<QueryResult> {
+    let pool: mssql.ConnectionPool;
+
+    if (datasourceId && this.mssqlPools.has(datasourceId)) {
+      pool = this.mssqlPools.get(datasourceId)!;
+    } else {
+      pool = new mssql.ConnectionPool({
+        server: settings.host ?? '',
+        port: settings.port || 1433,
+        user: settings.username,
+        password: settings.password,
+        database: settings.database,
+        options: {
+          encrypt: settings.ssl ?? false,
+          trustServerCertificate: !settings.ssl,
+          enableArithAbort: true,
+        },
+        pool: {
+          max: 5,
+          min: 0,
+          idleTimeoutMillis: 30000,
+        },
+        connectionTimeout: 5000,
+      });
+
+      await pool.connect();
+
+      if (datasourceId) {
+        this.mssqlPools.set(datasourceId, pool);
+      }
+    }
+
+    const transaction = new mssql.Transaction(pool);
+    let transactionStarted = false;
+
+    try {
+      await transaction.begin(mssql.ISOLATION_LEVEL.READ_COMMITTED);
+      transactionStarted = true;
+
+      const request = new mssql.Request(transaction);
+      if (executionId) {
+        this.activeExecutions.set(executionId, {
+          organizationId: orgId,
+          cancelRequested: false,
+          cancel: () => request.cancel(),
+        });
+      }
+
+      const result = await request.query(sql);
+      await transaction.rollback();
+      transactionStarted = false;
+
+      const rows = result.recordset ?? [];
+      const columns =
+        rows.length > 0
+          ? Object.keys(rows[0] as Record<string, unknown>)
+          : Object.keys(result.recordset?.columns ?? {});
+
+      return {
+        columns,
+        rows,
+        rowCount: rows.length,
+      };
+    } catch (error) {
+      if (transactionStarted) {
+        await transaction.rollback().catch(() => {});
+      }
+
+      throw new BadRequestException(`SQL Server Error: ${error.message}`);
+    } finally {
+      if (!datasourceId) {
+        await pool.close().catch(() => {});
+      }
     }
   }
 
