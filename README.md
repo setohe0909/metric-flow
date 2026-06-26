@@ -273,7 +273,7 @@ Open an [issue](https://github.com/setohe0909/metric-flow/issues) with:
 ## 🗺️ Roadmap
 
 - [x] Role-based column/row filtering per datasource
-- [ ] Scheduled query execution & email delivery
+- [x] Scheduled query execution & email delivery
 - [x] Dashboard embed via `<iframe>` snippet
 - [x] BigQuery and Snowflake drivers
 - [ ] SAML / SSO integration

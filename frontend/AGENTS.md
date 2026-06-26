@@ -58,8 +58,13 @@ Run from `frontend/`:
 
 ```bash
 npm run lint
+npm run lint:fix
 npm run build
 ```
+
+Use `npm run lint` for verification without mutating files. Use
+`npm run lint:fix` only when you intentionally want ESLint autofixes, and
+review the resulting diff before completing the task.
 
 For UI changes, also verify the affected flow in the browser at relevant desktop
 and narrow viewport sizes.

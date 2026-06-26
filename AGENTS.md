@@ -40,6 +40,7 @@ Run commands from the application directory they belong to.
 ```bash
 cd backend
 npm run lint
+npm run lint:fix
 npm run build
 npm test
 ```
@@ -52,8 +53,13 @@ or interactions between modules.
 ```bash
 cd frontend
 npm run lint
+npm run lint:fix
 npm run build
 ```
+
+Use `npm run lint` as the default validation command in local checks and CI so
+linting never mutates the working tree implicitly. Use `npm run lint:fix` only
+when you intentionally want autofixes, then review the resulting diff.
 
 Report any validation command that could not be run and why. Do not claim a
 check passed unless it was executed successfully.
@@ -65,4 +71,3 @@ check passed unless it was executed successfully.
 - Secrets and tenant boundaries remain protected.
 - Relevant lint, build, and test commands pass.
 - Documentation is updated when setup or externally visible behavior changes.
-

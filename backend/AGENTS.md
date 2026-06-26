@@ -66,11 +66,12 @@ Run from `backend/`:
 
 ```bash
 npm run lint
+npm run lint:fix
 npm run build
 npm test
 npm run test:e2e
 ```
 
-The lint script applies fixes. Review its resulting diff before completing the
-task.
-
+Use `npm run lint` for validation without mutating the working tree. Use
+`npm run lint:fix` only when you intentionally want ESLint autofixes, and
+review the resulting diff before completing the task.

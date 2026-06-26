@@ -73,12 +73,7 @@ describe('OrganizationsService user lifecycle', () => {
     (prisma.membership.count as jest.Mock).mockResolvedValue(1);
 
     await expect(
-      service.updateMemberRole(
-        'org-1',
-        'membership-1',
-        'admin-2',
-        'EDITOR',
-      ),
+      service.updateMemberRole('org-1', 'membership-1', 'admin-2', 'EDITOR'),
     ).rejects.toThrow(BadRequestException);
   });
 

@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
+import {
+  Allow,
+  IsString,
+  IsNotEmpty,
+  IsUUID,
+  IsOptional,
+} from 'class-validator';
 
 export class RunQueryDto {
   @IsUUID('4', { message: 'ID de conector inválido' })
@@ -9,6 +15,7 @@ export class RunQueryDto {
   @IsNotEmpty({ message: 'El código SQL es obligatorio' })
   querySql: string;
 
+  @Allow()
   @IsUUID('4', { message: 'ID de ejecución inválido' })
   @IsOptional()
   executionId?: string;
