@@ -549,6 +549,17 @@ export class QueryEngineService implements OnModuleDestroy {
       `org_${orgId}`,
     );
     const absolutePath = path.resolve(storageDir, settings.filePath);
+    const relativePath = path.relative(storageDir, absolutePath);
+
+    if (
+      relativePath.startsWith('..') ||
+      path.isAbsolute(relativePath) ||
+      relativePath.length === 0
+    ) {
+      throw new BadRequestException(
+        'La ruta del archivo SQLite/CSV es inválida para esta organización.',
+      );
+    }
 
     if (!fs.existsSync(absolutePath)) {
       throw new BadRequestException(

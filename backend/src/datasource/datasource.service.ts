@@ -28,6 +28,12 @@ export class DatasourceService {
   ) {}
 
   async create(orgId: string, dto: CreateDatasourceDto) {
+    if (dto.type === 'sqlite' || dto.type === 'csv') {
+      throw new BadRequestException(
+        'Los conectores SQLite y CSV deben crearse mediante la carga segura de archivos.',
+      );
+    }
+
     // 1. Probar conexión antes de guardar (pero capturar error para permitir guardar de todos modos)
     let warning: string | undefined;
     try {
@@ -44,6 +50,11 @@ export class DatasourceService {
     const settingsCopy = { ...dto.connectionSettings };
     if (settingsCopy.password) {
       settingsCopy.password = this.encryption.encrypt(settingsCopy.password);
+    }
+    if (settingsCopy.serviceAccountJson) {
+      settingsCopy.serviceAccountJson = this.encryption.encrypt(
+        settingsCopy.serviceAccountJson,
+      );
     }
 
     const encryptedSettingsJson = JSON.stringify(settingsCopy);
@@ -74,12 +85,9 @@ export class DatasourceService {
 
     // Limpiar contraseñas antes de retornar
     return datasources.map((ds) => {
-      const settings = JSON.parse(
-        ds.connectionSettings,
-      ) as ConnectionSettingsDto;
-      if (settings.password) {
-        settings.password = '••••••••'; // Ocultar credencial real
-      }
+      const settings = this.maskSensitiveSettings(
+        JSON.parse(ds.connectionSettings) as ConnectionSettingsDto,
+      );
       return {
         id: ds.id,
         name: ds.name,
@@ -101,11 +109,9 @@ export class DatasourceService {
       throw new NotFoundException('Conector no encontrado');
     }
 
-    const settings = JSON.parse(ds.connectionSettings) as ConnectionSettingsDto;
-    // Desencriptar contraseña si se requiere para uso interno
-    if (settings.password && settings.password !== '••••••••') {
-      settings.password = this.encryption.decrypt(settings.password);
-    }
+    const settings = this.decryptSensitiveSettings(
+      JSON.parse(ds.connectionSettings) as ConnectionSettingsDto,
+    );
 
     return {
       id: ds.id,
@@ -317,5 +323,39 @@ export class DatasourceService {
   async getSchema(orgId: string, id: string) {
     const ds = await this.findOne(orgId, id);
     return this.queryEngine.getDbSchema(ds.type, ds.connectionSettings, orgId);
+  }
+
+  private decryptSensitiveSettings(
+    settings: ConnectionSettingsDto,
+  ): ConnectionSettingsDto {
+    const copy = { ...settings };
+
+    if (copy.password && copy.password !== '••••••••') {
+      copy.password = this.encryption.decrypt(copy.password);
+    }
+
+    if (copy.serviceAccountJson && copy.serviceAccountJson !== '••••••••') {
+      copy.serviceAccountJson = this.encryption.decrypt(
+        copy.serviceAccountJson,
+      );
+    }
+
+    return copy;
+  }
+
+  private maskSensitiveSettings(
+    settings: ConnectionSettingsDto,
+  ): ConnectionSettingsDto {
+    const copy = { ...settings };
+
+    if (copy.password) {
+      copy.password = '••••••••';
+    }
+
+    if (copy.serviceAccountJson) {
+      copy.serviceAccountJson = '••••••••';
+    }
+
+    return copy;
   }
 }
