@@ -9,6 +9,9 @@ describe('DashboardService publication', () => {
       updateMany: jest.fn(),
       findUnique: jest.fn(),
     },
+    dashboardPage: {
+      findMany: jest.fn(),
+    },
     widget: {
       findFirst: jest.fn(),
     },
@@ -71,29 +74,62 @@ describe('DashboardService publication', () => {
         organizationId: 'org-1',
         publishedAt: { not: null },
       },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        publishedAt: true,
-        createdAt: true,
-        updatedAt: true,
+      select: expect.objectContaining({
         widgets: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            chartConfig: true,
-            layoutX: true,
-            layoutY: true,
-            layoutW: true,
-            layoutH: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: expect.not.objectContaining({
+            query: expect.anything(),
+          }),
           orderBy: { createdAt: 'asc' },
         },
+      }),
+    });
+  });
+
+  it('returns dashboard pages with safe widget details for a READER dashboard', async () => {
+    prisma.dashboard.findFirst.mockResolvedValue({
+      id: 'dashboard-1',
+      pages: [
+        {
+          id: 'page-1',
+          title: 'Resumen',
+          slug: 'resumen',
+          order: 0,
+          widgets: [
+            {
+              id: 'widget-1',
+              title: 'Revenue',
+              type: 'bar',
+              chartConfig: {},
+            },
+          ],
+        },
+      ],
+      widgets: [],
+    });
+
+    const dashboard = await service.findOne('org-1', 'dashboard-1', 'READER');
+
+    expect(dashboard.pages).toHaveLength(1);
+    expect(prisma.dashboard.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'dashboard-1',
+        organizationId: 'org-1',
+        publishedAt: { not: null },
       },
+      select: expect.objectContaining({
+        pages: {
+          select: expect.objectContaining({
+            id: true,
+            title: true,
+            slug: true,
+            icon: true,
+            order: true,
+            config: true,
+            widgets: expect.any(Object),
+          }),
+          orderBy: { order: 'asc' },
+        },
+      }),
     });
   });
 

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useDashboard } from '@/features/dashboards/hooks/use-dashboards';
 import { useWidgets } from '@/features/widgets/hooks/use-widgets';
 import { useQueries } from '@/features/queries/hooks/use-queries';
 import { ChartRenderer } from '@/features/widgets/components/chart-renderer';
+import { DashboardWidgetRenderer } from '@/features/dashboards/components/dashboard-widget-renderer';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import {
@@ -18,6 +19,8 @@ import {
   HelpCircle,
   FileText,
   AlertTriangle,
+  Image,
+  Minus,
 } from 'lucide-react';
 
 // ─── Paleta retro ───────────────────────────────────────────────
@@ -40,6 +43,7 @@ const inputStyle: React.CSSProperties = {
   backgroundColor: C.bg,
   border: C.border,
 };
+const COLOR_SWATCHES = ['#f7a501', '#23251d', '#3b82f6', '#10b981', '#ef4444'];
 
 function RetroInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   const [focused, setFocused] = useState(false);
@@ -88,6 +92,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function WidgetCreator() {
   const { dashboardId } = useParams<{ dashboardId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { activeOrg } = useAuth();
 
@@ -98,15 +103,22 @@ export default function WidgetCreator() {
 
   // Inputs del Formulario
   const [title, setTitle] = useState('');
-  const [queryId, setQueryId] = useState('');
+  const [queryId, setQueryId] = useState(searchParams.get('queryId') ?? '');
   const [chartType, setChartType] = useState<string>('bar');
+  const pageId = searchParams.get('pageId') ?? undefined;
+  const isDataWidget = !['text', 'divider', 'image'].includes(chartType);
 
   // Mapeos de Ejes
   const [xAxisColumn, setXAxisColumn] = useState('');
+  const [xAxisColumns, setXAxisColumns] = useState<string[]>([]);
   const [yAxisColumn, setYAxisColumn] = useState('');
+  const [yAxisColumns, setYAxisColumns] = useState<string[]>([]);
   const [selectedColor, setSelectedColor] = useState('#f7a501');
+  const [seriesColors, setSeriesColors] = useState<Record<string, string>>({});
   const [kpiColumn, setKpiColumn] = useState('');
   const [kpiLabel, setKpiLabel] = useState('');
+  const [textContent, setTextContent] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
 
   // Estados de previsualización
   const [previewData, setPreviewData] = useState<Record<string, any>[] | null>(null);
@@ -119,7 +131,7 @@ export default function WidgetCreator() {
 
   // Si se selecciona otra query, cargar su previsualización automáticamente
   useEffect(() => {
-    if (!queryId) {
+    if (!queryId || !isDataWidget) {
       setPreviewData(null);
       setPreviewColumns([]);
       setPreviewError(null);
@@ -142,9 +154,17 @@ export default function WidgetCreator() {
 
         if (res.columns.length > 0) {
           setXAxisColumn(res.columns[0]);
+          setXAxisColumns([res.columns[0]]);
           setKpiColumn(res.columns[0]);
           setKpiLabel(res.columns[0]);
           setYAxisColumn(res.columns.length > 1 ? res.columns[1] : res.columns[0]);
+          setYAxisColumns(res.columns.length > 1 ? [res.columns[1]] : [res.columns[0]]);
+          setSeriesColors(
+            res.columns.reduce<Record<string, string>>((acc, col, index) => {
+              acc[col] = COLOR_SWATCHES[index % COLOR_SWATCHES.length];
+              return acc;
+            }, {})
+          );
         }
       } catch (err: any) {
         setPreviewError(err.response?.data?.message || 'Error al ejecutar la consulta SQL.');
@@ -155,29 +175,62 @@ export default function WidgetCreator() {
       }
     }
     loadPreview();
-  }, [queryId, savedQueries, runQuery]);
+  }, [isDataWidget, queryId, savedQueries, runQuery]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isViewer || !dashboardId || !queryId || !title.trim()) return;
+    if (isViewer || !dashboardId || !title.trim()) return;
 
-    let chartConfig: Record<string, any> = {};
-    if (chartType === 'kpi') {
+    let chartConfig: Record<string, any>;
+    const activeXAxisColumns = getActiveXAxisColumns();
+    const activeYAxisColumns = getActiveYAxisColumns();
+
+    if (chartType === 'text') {
+      chartConfig = {};
+    } else if (chartType === 'divider') {
+      chartConfig = {};
+    } else if (chartType === 'image') {
+      chartConfig = {};
+    } else if (chartType === 'kpi') {
       chartConfig = {
         kpiColumn: kpiColumn || previewColumns[0],
         kpiLabel: kpiLabel || kpiColumn || previewColumns[0],
       };
+    } else if (chartType === 'stacked-bar') {
+      chartConfig = {
+        xAxis: activeXAxisColumns[0],
+        xAxes: activeXAxisColumns,
+        yAxis: activeYAxisColumns[0],
+        yAxes: activeYAxisColumns,
+        colors: Object.fromEntries(activeYAxisColumns.map((col) => [col, seriesColors[col] || selectedColor])),
+        xAxisSeparator: ' - ',
+      };
     } else {
       chartConfig = {
-        xAxis: xAxisColumn || previewColumns[0],
-        yAxis: yAxisColumn || previewColumns[1] || previewColumns[0],
+        xAxis: activeXAxisColumns[0],
+        xAxes: activeXAxisColumns,
+        yAxis: activeYAxisColumns[0],
         color: selectedColor,
+        xAxisSeparator: ' - ',
       };
     }
 
     try {
       setSuccessMsg('');
-      await createWidget({ dashboardId, queryId, title: title.trim(), type: chartType, chartConfig });
+      await createWidget({
+        dashboardId,
+        pageId,
+        queryId: isDataWidget ? queryId : undefined,
+        title: title.trim(),
+        type: chartType,
+        chartConfig,
+        configVersion: 2,
+        visualConfig: {
+          text: textContent,
+          markdown: textContent,
+          imageUrl,
+        },
+      });
       setSuccessMsg('¡Widget agregado correctamente!');
       setTimeout(() => navigate(`/dashboards/${dashboardId}`), 1200);
     } catch (err: any) {
@@ -195,13 +248,55 @@ export default function WidgetCreator() {
 
   const chartTypes = [
     { type: 'bar', label: 'Barras', icon: BarChart },
+    { type: 'stacked-bar', label: 'Apiladas', icon: BarChart },
     { type: 'line', label: 'Líneas', icon: LineChart },
     { type: 'pie', label: 'Tarta', icon: PieChart },
     { type: 'kpi', label: 'KPI', icon: HelpCircle },
     { type: 'table', label: 'Tabla', icon: FileText },
+    { type: 'text', label: 'Texto', icon: FileText },
+    { type: 'divider', label: 'Separador', icon: Minus },
+    { type: 'image', label: 'Imagen', icon: Image },
   ];
 
-  const colorSwatches = ['#f7a501', '#23251d', '#3b82f6', '#10b981', '#ef4444'];
+  const isStackedBar = chartType === 'stacked-bar';
+  const canConcatenateXAxis = chartType === 'bar' || chartType === 'stacked-bar' || chartType === 'line';
+
+  function getActiveXAxisColumns() {
+    const primary = xAxisColumn || previewColumns[0];
+    return Array.from(new Set([primary, ...xAxisColumns])).filter(Boolean);
+  }
+
+  function getActiveYAxisColumns() {
+    if (!isStackedBar) {
+      return [yAxisColumn || previewColumns[1] || previewColumns[0]].filter(Boolean);
+    }
+    return (yAxisColumns.length > 0 ? yAxisColumns : [yAxisColumn || previewColumns[1] || previewColumns[0]]).filter(Boolean);
+  }
+
+  function handlePrimaryXAxisChange(column: string) {
+    setXAxisColumn(column);
+    setXAxisColumns((current) => Array.from(new Set([column, ...current.filter((col) => col !== column)])));
+  }
+
+  function toggleXAxisColumn(column: string) {
+    setXAxisColumns((current) => {
+      if (current.includes(column)) {
+        if (column === xAxisColumn || current.length === 1) return current;
+        return current.filter((col) => col !== column);
+      }
+      return [...current, column];
+    });
+  }
+
+  function toggleYAxisColumn(column: string) {
+    setYAxisColumns((current) => {
+      if (current.includes(column)) {
+        if (current.length === 1) return current;
+        return current.filter((col) => col !== column);
+      }
+      return [...current, column];
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -262,12 +357,13 @@ export default function WidgetCreator() {
                 style={{ color: C.muted }}
               />
               <RetroSelect
-                required
+                required={isDataWidget}
                 value={queryId}
                 onChange={(e) => setQueryId(e.target.value)}
                 className="pl-9"
+                disabled={!isDataWidget}
               >
-                <option value="">Selecciona una consulta...</option>
+                <option value="">{isDataWidget ? 'Selecciona una consulta...' : 'No requiere consulta'}</option>
                 {savedQueries.map((query) => (
                   <option key={query.id} value={query.id}>
                     {query.name}
@@ -280,7 +376,7 @@ export default function WidgetCreator() {
           {/* Tipo de gráfico */}
           <div>
             <SectionLabel>Tipo de Visualización</SectionLabel>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {chartTypes.map(({ type, label, icon: Icon }) => {
                 const isActive = chartType === type;
                 return (
@@ -306,7 +402,42 @@ export default function WidgetCreator() {
           </div>
 
           {/* Configuración de columnas (solo si hay datos) */}
-          {previewColumns.length > 0 && (
+          {!isDataWidget && (
+            <div className="space-y-4 pt-4" style={{ borderTop: `1.5px solid ${C.olive}` }}>
+              <h4 className="text-xs font-bold" style={{ color: C.olive }}>Configuración de Contenido</h4>
+              {chartType === 'text' && (
+                <div>
+                  <SectionLabel>Texto / Markdown</SectionLabel>
+                  <textarea
+                    value={textContent}
+                    onChange={(e) => setTextContent(e.target.value)}
+                    placeholder="Escribe una explicación, insight o recomendación..."
+                    rows={5}
+                    className={`${inputClass} resize-y`}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {chartType === 'image' && (
+                <div>
+                  <SectionLabel>URL de imagen</SectionLabel>
+                  <RetroInput
+                    type="url"
+                    placeholder="https://..."
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                  />
+                </div>
+              )}
+              {chartType === 'divider' && (
+                <p className="text-xs" style={{ color: C.muted }}>
+                  El separador usa el título solo para identificar el widget en el dashboard.
+                </p>
+              )}
+            </div>
+          )}
+
+          {isDataWidget && previewColumns.length > 0 && (
             <div className="space-y-4 pt-4" style={{ borderTop: `1.5px solid ${C.olive}` }}>
               <h4 className="text-xs font-bold" style={{ color: C.olive }}>Configuración de Columnas</h4>
 
@@ -333,19 +464,63 @@ export default function WidgetCreator() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <SectionLabel>{chartType === 'pie' ? 'Categoría' : 'Eje X (Categoría)'}</SectionLabel>
-                      <RetroSelect value={xAxisColumn} onChange={(e) => setXAxisColumn(e.target.value)}>
+                      <RetroSelect value={xAxisColumn} onChange={(e) => handlePrimaryXAxisChange(e.target.value)}>
                         {previewColumns.map((col) => <option key={col} value={col}>{col}</option>)}
                       </RetroSelect>
                     </div>
                     <div>
                       <SectionLabel>{chartType === 'pie' ? 'Valor' : 'Eje Y (Valor)'}</SectionLabel>
-                      <RetroSelect value={yAxisColumn} onChange={(e) => setYAxisColumn(e.target.value)}>
-                        {previewColumns.map((col) => <option key={col} value={col}>{col}</option>)}
-                      </RetroSelect>
+                      {isStackedBar ? (
+                        <div
+                          className="rounded-xl p-2 max-h-32 overflow-y-auto space-y-1"
+                          style={{ backgroundColor: C.bg, border: C.border }}
+                        >
+                          {previewColumns.map((col) => (
+                            <label key={col} className="flex items-center gap-2 text-xs font-semibold" style={{ color: C.olive }}>
+                              <input
+                                type="checkbox"
+                                checked={getActiveYAxisColumns().includes(col)}
+                                onChange={() => toggleYAxisColumn(col)}
+                                className="h-3.5 w-3.5 accent-[#f7a501]"
+                              />
+                              <span className="truncate">{col}</span>
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <RetroSelect value={yAxisColumn} onChange={(e) => setYAxisColumn(e.target.value)}>
+                          {previewColumns.map((col) => <option key={col} value={col}>{col}</option>)}
+                        </RetroSelect>
+                      )}
                     </div>
                   </div>
 
-                  {chartType !== 'pie' && chartType !== 'table' && (
+                  {canConcatenateXAxis && (
+                    <div>
+                      <SectionLabel>Concatenar información en eje X</SectionLabel>
+                      <div
+                        className="rounded-xl p-2 grid grid-cols-1 sm:grid-cols-2 gap-1"
+                        style={{ backgroundColor: C.bg, border: C.border }}
+                      >
+                        {previewColumns.map((col) => (
+                          <label key={col} className="flex items-center gap-2 text-xs font-semibold" style={{ color: C.olive }}>
+                            <input
+                              type="checkbox"
+                              checked={getActiveXAxisColumns().includes(col)}
+                              onChange={() => toggleXAxisColumn(col)}
+                              className="h-3.5 w-3.5 accent-[#f7a501]"
+                            />
+                            <span className="truncate">{col}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="mt-1 text-[10px]" style={{ color: C.muted }}>
+                        La primera columna sigue siendo el eje X principal; las seleccionadas se unen con “ - ”.
+                      </p>
+                    </div>
+                  )}
+
+                  {chartType !== 'pie' && chartType !== 'table' && !isStackedBar && (
                     <div>
                       <SectionLabel>Color del Gráfico</SectionLabel>
                       <div className="flex items-center gap-3">
@@ -357,7 +532,7 @@ export default function WidgetCreator() {
                           style={{ border: C.border }}
                         />
                         <div className="flex gap-1.5">
-                          {colorSwatches.map((hex) => (
+                          {COLOR_SWATCHES.map((hex) => (
                             <button
                               key={hex}
                               type="button"
@@ -371,6 +546,29 @@ export default function WidgetCreator() {
                             />
                           ))}
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isStackedBar && (
+                    <div>
+                      <SectionLabel>Colores por serie apilada</SectionLabel>
+                      <div className="space-y-2">
+                        {getActiveYAxisColumns().map((col, index) => (
+                          <div key={col} className="flex items-center gap-2">
+                            <span className="flex-1 truncate text-xs font-semibold" style={{ color: C.olive }}>
+                              {col}
+                            </span>
+                            <input
+                              type="color"
+                              aria-label={`Color para ${col}`}
+                              value={seriesColors[col] || COLOR_SWATCHES[index % COLOR_SWATCHES.length]}
+                              onChange={(e) => setSeriesColors((current) => ({ ...current, [col]: e.target.value }))}
+                              className="h-8 w-10 rounded-lg cursor-pointer"
+                              style={{ border: C.border }}
+                            />
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -400,7 +598,7 @@ export default function WidgetCreator() {
             </button>
             <button
               type="submit"
-              disabled={isCreatingWidget || !queryId || !title.trim() || isViewer}
+              disabled={isCreatingWidget || (isDataWidget && !queryId) || !title.trim() || isViewer}
               className="btn-retro-primary px-5 py-2"
             >
               {isCreatingWidget
@@ -448,7 +646,31 @@ export default function WidgetCreator() {
               )}
 
               {/* Gráfico */}
-              {!isLoadingPreview && !previewError && previewData && (
+              {!isLoadingPreview && !previewError && !isDataWidget && (
+                <div className="w-full h-full min-h-[220px]">
+                  <ErrorBoundary>
+                    <DashboardWidgetRenderer
+                      widget={{
+                        id: 'preview',
+                        title: title || 'Vista previa',
+                        type: chartType,
+                        chartConfig: {},
+                        visualConfig: {
+                          text: textContent || 'Texto narrativo del dashboard',
+                          markdown: textContent || 'Texto narrativo del dashboard',
+                          imageUrl,
+                        },
+                        layoutX: 0,
+                        layoutY: 0,
+                        layoutW: 6,
+                        layoutH: 3,
+                      }}
+                    />
+                  </ErrorBoundary>
+                </div>
+              )}
+
+              {!isLoadingPreview && !previewError && isDataWidget && previewData && (
                 <div className="w-full h-full min-h-[220px]">
                   <ErrorBoundary>
                     <ChartRenderer
@@ -456,7 +678,25 @@ export default function WidgetCreator() {
                       chartConfig={
                         chartType === 'kpi'
                           ? { kpiColumn: kpiColumn || previewColumns[0], kpiLabel: kpiLabel || kpiColumn || previewColumns[0] }
-                          : { xAxis: xAxisColumn || previewColumns[0], yAxis: yAxisColumn || previewColumns[1] || previewColumns[0], color: selectedColor }
+                          : isStackedBar
+                            ? {
+                                xAxis: getActiveXAxisColumns()[0],
+                                xAxes: getActiveXAxisColumns(),
+                                yAxis: getActiveYAxisColumns()[0],
+                                yAxes: getActiveYAxisColumns(),
+                                colors: Object.fromEntries(getActiveYAxisColumns().map((col, index) => [
+                                  col,
+                                  seriesColors[col] || COLOR_SWATCHES[index % COLOR_SWATCHES.length],
+                                ])),
+                                xAxisSeparator: ' - ',
+                              }
+                            : {
+                                xAxis: getActiveXAxisColumns()[0],
+                                xAxes: getActiveXAxisColumns(),
+                                yAxis: getActiveYAxisColumns()[0],
+                                color: selectedColor,
+                                xAxisSeparator: ' - ',
+                              }
                       }
                       data={previewData}
                     />
@@ -465,7 +705,7 @@ export default function WidgetCreator() {
               )}
 
               {/* Empty state */}
-              {!isLoadingPreview && !previewError && !previewData && (
+              {!isLoadingPreview && !previewError && isDataWidget && !previewData && (
                 <div className="text-center text-xs py-10 max-w-xs space-y-2">
                   <div
                     className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-3"

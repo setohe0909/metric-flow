@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { usePublicDashboard } from '@/features/dashboards/hooks/use-dashboards';
-import { ChartRenderer } from '@/features/widgets/components/chart-renderer';
+import { DashboardSidebar } from '@/features/dashboards/components/dashboard-sidebar';
+import { DashboardWidgetRenderer } from '@/features/dashboards/components/dashboard-widget-renderer';
+import type { DashboardWidget } from '@/features/dashboards/types/dashboard-studio';
+import { getDashboardPages, getInitialPageId, widgetNeedsData } from '@/features/dashboards/utils/dashboard-pages';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { apiClient } from '@/lib/api-client';
 import { SpotlightCard } from '@/components/spotlight-card';
@@ -19,11 +22,28 @@ export default function PublicDashboardView() {
   const { token } = useParams<{ token: string }>();
   const { dashboard, isLoadingDashboard, dashboardError } = usePublicDashboard(token || '');
   const [layouts, setLayouts] = useState<any[]>([]);
+  const [activePageId, setActivePageId] = useState('');
+
+  const pages = useMemo(
+    () => (dashboard ? getDashboardPages(dashboard) : []),
+    [dashboard],
+  );
+  const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
+  const activeWidgets = useMemo(
+    () => activePage?.widgets ?? [],
+    [activePage],
+  );
 
   useEffect(() => {
-    if (dashboard?.widgets) {
+    if (dashboard && !activePageId) {
+      setActivePageId(getInitialPageId(dashboard));
+    }
+  }, [activePageId, dashboard]);
+
+  useEffect(() => {
+    if (activeWidgets) {
       setLayouts(
-        dashboard.widgets.map((w: any) => ({
+        activeWidgets.map((w: any) => ({
           i: w.id,
           x: w.layoutX,
           y: w.layoutY,
@@ -32,7 +52,7 @@ export default function PublicDashboardView() {
         }))
       );
     }
-  }, [dashboard]);
+  }, [activeWidgets]);
 
   if (isLoadingDashboard) {
     return (
@@ -90,66 +110,79 @@ export default function PublicDashboardView() {
 
       {/* Canvas */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-8 relative z-10">
-        {(!dashboard.widgets || dashboard.widgets.length === 0) ? (
-          <div className="border-2 border-dashed border-[#23251d] rounded-2xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-[4px_4px_0px_0px_#23251d] mt-10">
-            <div className="p-4 bg-[#f4f4f0] border-2 border-[#23251d] rounded-2xl mb-4">
-              <LayoutDashboard className="h-8 w-8 text-[#f7a501]" />
-            </div>
-            <h3 className="text-base font-extrabold text-[#23251d] font-mono">Este dashboard está vacío</h3>
-            <p className="text-xs text-[#4d4f46] max-w-xs mt-1 leading-relaxed font-mono">
-              No hay widgets configurados en este dashboard en este momento.
-            </p>
-          </div>
-        ) : (
-          <div className="relative">
-            <ReactGridLayoutWithWidth
-              className="layout"
-              layout={layouts}
-              cols={12}
-              rowHeight={80}
-              isDraggable={false}
-              isResizable={false}
-              margin={[20, 20]}
-            >
-              {dashboard.widgets.map((widget) => (
-                <SpotlightCard
-                  key={widget.id}
-                  className="hover:border-[#f7a501] !p-0"
-                >
-                  {/* Retro OS Header Bar */}
-                  <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3">
-                    <div className="flex gap-1.5 shrink-0">
-                      <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
-                      <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
-                      <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
-                    </div>
-                    <span className="text-xs font-extrabold text-[#23251d] truncate font-mono flex-1 text-center select-none">
-                      {widget.title}.json
-                    </span>
-                  </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
+          <DashboardSidebar
+            pages={pages}
+            activePageId={activePage?.id ?? ''}
+            onSelectPage={setActivePageId}
+          />
 
-                  {/* Chart container */}
-                  <div className="flex-1 min-h-0 p-5 bg-white">
-                    <ErrorBoundary>
-                      <PublicWidgetContainer widget={widget} token={token || ''} />
-                    </ErrorBoundary>
-                  </div>
-                </SpotlightCard>
-              ))}
-            </ReactGridLayoutWithWidth>
-          </div>
-        )}
+          {activeWidgets.length === 0 ? (
+            <div className="border-2 border-dashed border-[#23251d] rounded-2xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-[4px_4px_0px_0px_#23251d]">
+              <div className="p-4 bg-[#f4f4f0] border-2 border-[#23251d] rounded-2xl mb-4">
+                <LayoutDashboard className="h-8 w-8 text-[#f7a501]" />
+              </div>
+              <h3 className="text-base font-extrabold text-[#23251d] font-mono">Esta sección está vacía</h3>
+              <p className="text-xs text-[#4d4f46] max-w-xs mt-1 leading-relaxed font-mono">
+                No hay widgets configurados en esta sección en este momento.
+              </p>
+            </div>
+          ) : (
+            <div className="relative">
+              <ReactGridLayoutWithWidth
+                className="layout"
+                layout={layouts}
+                cols={12}
+                rowHeight={80}
+                isDraggable={false}
+                isResizable={false}
+                margin={[20, 20]}
+              >
+                {activeWidgets.map((widget) => (
+                  <SpotlightCard
+                    key={widget.id}
+                    className="hover:border-[#f7a501] !p-0"
+                  >
+                    {/* Retro OS Header Bar */}
+                    <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3">
+                      <div className="flex gap-1.5 shrink-0">
+                        <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
+                        <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
+                        <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
+                      </div>
+                      <span className="text-xs font-extrabold text-[#23251d] truncate font-mono flex-1 text-center select-none">
+                        {widget.title}.json
+                      </span>
+                    </div>
+
+                    {/* Chart container */}
+                    <div className="flex-1 min-h-0 p-5 bg-white">
+                      <ErrorBoundary>
+                        <PublicWidgetContainer widget={widget} token={token || ''} />
+                      </ErrorBoundary>
+                    </div>
+                  </SpotlightCard>
+                ))}
+              </ReactGridLayoutWithWidth>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
 }
 
-function PublicWidgetContainer({ widget, token }: { widget: any; token: string }) {
+function PublicWidgetContainer({ widget, token }: { widget: DashboardWidget; token: string }) {
+  const needsData = widgetNeedsData(widget.type);
   const [data, setData] = useState<Record<string, any>[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(needsData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!needsData) {
+      return;
+    }
+
     let active = true;
     async function loadData() {
       try {
@@ -176,7 +209,11 @@ function PublicWidgetContainer({ widget, token }: { widget: any; token: string }
     return () => {
       active = false;
     };
-  }, [widget.id, token]);
+  }, [needsData, widget.id, token]);
+
+  if (!needsData) {
+    return <DashboardWidgetRenderer widget={widget} />;
+  }
 
   if (loading) {
     return (
@@ -199,10 +236,6 @@ function PublicWidgetContainer({ widget, token }: { widget: any; token: string }
   }
 
   return (
-    <ChartRenderer
-      type={widget.type}
-      chartConfig={widget.chartConfig}
-      data={data || []}
-    />
+    <DashboardWidgetRenderer widget={widget} data={data || []} />
   );
 }

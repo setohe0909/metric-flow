@@ -17,6 +17,21 @@ export class WidgetService {
       );
     }
 
+    if (dto.pageId) {
+      const page = await this.prisma.dashboardPage.findFirst({
+        where: {
+          id: dto.pageId,
+          dashboardId: dto.dashboardId,
+          dashboard: { organizationId: orgId },
+        },
+      });
+      if (!page) {
+        throw new BadRequestException(
+          'La página especificada no pertenece a este dashboard.',
+        );
+      }
+    }
+
     // 2. Validar query pertenece a la org activa (si se provee)
     if (dto.queryId) {
       const query = await this.prisma.query.findFirst({
@@ -32,10 +47,15 @@ export class WidgetService {
     return this.prisma.widget.create({
       data: {
         dashboardId: dto.dashboardId,
+        pageId: dto.pageId,
         queryId: dto.queryId,
         title: dto.title,
         type: dto.type,
         chartConfig: dto.chartConfig,
+        configVersion: dto.configVersion ?? 1,
+        dataConfig: dto.dataConfig,
+        visualConfig: dto.visualConfig,
+        interactionConfig: dto.interactionConfig,
         layoutX: dto.layoutX ?? 0,
         layoutY: dto.layoutY ?? 0,
         layoutW: dto.layoutW ?? 6, // por defecto 6 columnas
@@ -57,12 +77,32 @@ export class WidgetService {
       throw new BadRequestException('Widget no encontrado.');
     }
 
+    if (dto.pageId) {
+      const page = await this.prisma.dashboardPage.findFirst({
+        where: {
+          id: dto.pageId,
+          dashboardId: widget.dashboardId,
+          dashboard: { organizationId: orgId },
+        },
+      });
+      if (!page) {
+        throw new BadRequestException(
+          'La página especificada no pertenece a este dashboard.',
+        );
+      }
+    }
+
     return this.prisma.widget.update({
       where: { id },
       data: {
         title: dto.title,
         type: dto.type,
+        pageId: dto.pageId,
         chartConfig: dto.chartConfig,
+        configVersion: dto.configVersion,
+        dataConfig: dto.dataConfig,
+        visualConfig: dto.visualConfig,
+        interactionConfig: dto.interactionConfig,
         layoutX: dto.layoutX,
         layoutY: dto.layoutY,
         layoutW: dto.layoutW,

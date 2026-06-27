@@ -1,8 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useDashboard } from '@/features/dashboards/hooks/use-dashboards';
 import { useWidgets } from '@/features/widgets/hooks/use-widgets';
-import { ChartRenderer } from '@/features/widgets/components/chart-renderer';
+import { DashboardSidebar } from '@/features/dashboards/components/dashboard-sidebar';
+import { DashboardStudioPalette, type StudioPaletteType } from '@/features/dashboards/components/dashboard-studio-palette';
+import { DashboardPropertiesPanel } from '@/features/dashboards/components/dashboard-properties-panel';
+import { DashboardWidgetRenderer } from '@/features/dashboards/components/dashboard-widget-renderer';
+import type { DashboardWidget } from '@/features/dashboards/types/dashboard-studio';
+import { getDashboardPages, getInitialPageId, widgetNeedsData } from '@/features/dashboards/utils/dashboard-pages';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { SpotlightCard } from '@/components/spotlight-card';
@@ -45,10 +50,18 @@ export default function DashboardDetail() {
     togglePublishDashboard,
     isTogglingPublish,
   } = useDashboard(id || '');
-  const { deleteWidget } = useWidgets();
+  const {
+    createWidget,
+    isCreatingWidget,
+    updateWidget,
+    isUpdatingWidget,
+    deleteWidget,
+  } = useWidgets();
 
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [localLayouts, setLocalLayouts] = useState<any[]>([]);
+  const [activePageId, setActivePageId] = useState('');
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
   const [showSharePanel, setShowSharePanel] = useState(false);
   const [shareTab, setShareTab] = useState<'link' | 'embed'>('link');
   const [copied, setCopied] = useState(false);
@@ -58,11 +71,37 @@ export default function DashboardDetail() {
 
   const isViewer = activeOrg?.role === 'READER';
 
-  // Initialize layouts from dashboard widgets
+  const pages = useMemo(
+    () => (dashboard ? getDashboardPages(dashboard) : []),
+    [dashboard],
+  );
+  const activePage = pages.find((page) => page.id === activePageId) ?? pages[0];
+  const activeWidgets = useMemo(
+    () => activePage?.widgets ?? [],
+    [activePage],
+  );
+  const selectedWidget = activeWidgets.find((widget) => widget.id === selectedWidgetId);
+  const activePageQuery = activePage && activePage.id !== 'legacy-default-page'
+    ? `?pageId=${activePage.id}`
+    : '';
+
   useEffect(() => {
-    if (dashboard?.widgets) {
+    if (dashboard && !activePageId) {
+      setActivePageId(getInitialPageId(dashboard));
+    }
+  }, [activePageId, dashboard]);
+
+  useEffect(() => {
+    if (selectedWidgetId && !selectedWidget) {
+      setSelectedWidgetId(null);
+    }
+  }, [selectedWidget, selectedWidgetId]);
+
+  // Initialize layouts from active dashboard page widgets
+  useEffect(() => {
+    if (activeWidgets) {
       setLocalLayouts(
-        dashboard.widgets.map((w: any) => ({
+        activeWidgets.map((w: any) => ({
           i: w.id,
           x: w.layoutX,
           y: w.layoutY,
@@ -71,7 +110,7 @@ export default function DashboardDetail() {
         }))
       );
     }
-  }, [dashboard]);
+  }, [activeWidgets]);
 
   if (isLoadingDashboard) {
     return (
@@ -108,6 +147,77 @@ export default function DashboardDetail() {
     }
   };
 
+  const handleAddStudioWidget = async (type: StudioPaletteType) => {
+    if (isViewer || !dashboard?.id) return;
+    const pageId = activePage?.id === 'legacy-default-page' ? undefined : activePage?.id;
+    const defaults = {
+      text: {
+        title: 'Nuevo bloque de texto',
+        layoutW: 6,
+        layoutH: 3,
+        visualConfig: {
+          text: 'Escribe aquí el insight que acompaña este dashboard.',
+          markdown: 'Escribe aquí el insight que acompaña este dashboard.',
+        },
+      },
+      divider: {
+        title: 'Separador',
+        layoutW: 12,
+        layoutH: 1,
+        visualConfig: {},
+      },
+      image: {
+        title: 'Imagen',
+        layoutW: 4,
+        layoutH: 3,
+        visualConfig: {
+          imageUrl: '',
+        },
+      },
+    } satisfies Record<StudioPaletteType, {
+      title: string;
+      layoutW: number;
+      layoutH: number;
+      visualConfig: Record<string, any>;
+    }>;
+    const config = defaults[type];
+    const created = await createWidget({
+      dashboardId: dashboard.id,
+      pageId,
+      title: config.title,
+      type,
+      chartConfig: {},
+      configVersion: 2,
+      visualConfig: config.visualConfig,
+      layoutX: 0,
+      layoutY: Math.max(0, ...activeWidgets.map((widget) => widget.layoutY + widget.layoutH)),
+      layoutW: config.layoutW,
+      layoutH: config.layoutH,
+    });
+    setSelectedWidgetId(created.id);
+    setIsEditingLayout(true);
+  };
+
+  const handleSaveWidgetProperties = async (changes: {
+    title: string;
+    visualConfig: Record<string, any>;
+  }) => {
+    if (!dashboard?.id || !selectedWidget) return;
+    await updateWidget({
+      id: selectedWidget.id,
+      dashboardId: dashboard.id,
+      data: {
+        title: changes.title,
+        visualConfig: changes.visualConfig,
+        configVersion: 2,
+      },
+    });
+  };
+
+  const handleOpenChartCreator = () => {
+    navigate(`/dashboards/${dashboard.id}/widgets/new${activePageQuery}`);
+  };
+
   const handleSaveLayout = async () => {
     try {
       const layoutsPayload = localLayouts.map((l) => ({
@@ -125,9 +235,9 @@ export default function DashboardDetail() {
   };
 
   const handleCancelLayout = () => {
-    if (dashboard?.widgets) {
+    if (activeWidgets) {
       setLocalLayouts(
-        dashboard.widgets.map((w: any) => ({
+        activeWidgets.map((w: any) => ({
           i: w.id,
           x: w.layoutX,
           y: w.layoutY,
@@ -240,7 +350,7 @@ export default function DashboardDetail() {
                   className="btn-retro-secondary"
                 >
                   <GripHorizontal className="h-4 w-4 text-slate-500" />
-                  Editar Diseño
+                  Abrir Studio
                 </button>
               )}
 
@@ -270,7 +380,7 @@ export default function DashboardDetail() {
               </button>
 
               <Link
-                to={`/dashboards/${dashboard.id}/widgets/new`}
+                to={`/dashboards/${dashboard.id}/widgets/new${activePageQuery}`}
                 className="btn-retro-primary"
               >
                 <Plus className="h-4 w-4 text-[#23251d]" /> Agregar Widget
@@ -423,82 +533,124 @@ export default function DashboardDetail() {
         </div>
       )}
 
-      {/* Widgets Canvas */}
-      {(!dashboard.widgets || dashboard.widgets.length === 0) ? (
-        <div className="border-2 border-dashed border-[#23251d] rounded-2xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-[4px_4px_0px_0px_#23251d]">
-          <div className="p-4 bg-[#f4f4f0] border-2 border-[#23251d] rounded-2xl text-slate-500 mb-4">
-            <LayoutDashboard className="h-8 w-8 text-[#f7a501]" />
+      <div className={`grid grid-cols-1 gap-6 ${
+        isEditingLayout && !isViewer
+          ? 'xl:grid-cols-[280px_minmax(0,1fr)_320px]'
+          : 'lg:grid-cols-[220px_1fr]'
+      }`}>
+        {isEditingLayout && !isViewer ? (
+          <DashboardStudioPalette
+            pages={pages}
+            activePageId={activePage?.id ?? ''}
+            disabled={isCreatingWidget}
+            onSelectPage={setActivePageId}
+            onAddWidget={handleAddStudioWidget}
+            onOpenChartCreator={handleOpenChartCreator}
+          />
+        ) : (
+          <div className="space-y-4">
+            <DashboardSidebar
+              pages={pages}
+              activePageId={activePage?.id ?? ''}
+              onSelectPage={setActivePageId}
+            />
           </div>
-          <h3 className="text-base font-extrabold text-[#23251d] font-mono">Este dashboard está vacío</h3>
-          <p className="text-xs text-[#4d4f46] max-w-xs mt-1 mb-6 leading-relaxed font-mono">
-            Agrega gráficos visuales para analizar tus indicadores clave de rendimiento (KPIs).
-          </p>
-          {!isViewer && (
-            <Link
-              to={`/dashboards/${dashboard.id}/widgets/new`}
-              className="btn-retro-primary"
-            >
-              <Plus className="h-4 w-4 text-[#23251d]" /> Agregar primer widget
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="relative">
-          <ReactGridLayoutWithWidth
-            className="layout"
-            layout={localLayouts}
-            cols={12}
-            rowHeight={80}
-            isDraggable={isEditingLayout}
-            isResizable={isEditingLayout}
-            draggableHandle=".drag-handle"
-            onLayoutChange={handleLayoutChange}
-            margin={[20, 20]}
-          >
-            {dashboard.widgets.map((widget) => (
-              <SpotlightCard
-                key={widget.id}
-                className={`hover:border-[#f7a501] !p-0 ${
-                  isEditingLayout
-                    ? 'border-dashed border-[#f7a501] bg-[#f7a501]/5'
-                    : 'border-[#23251d]'
-                }`}
-              >
-                {/* Retro OS Header Bar */}
-                <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3 drag-handle cursor-grab active:cursor-grabbing">
-                  <div className="flex gap-1.5 shrink-0">
-                    <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
-                    <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
-                    <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
-                  </div>
-                  <span className="text-xs font-extrabold text-[#23251d] truncate font-mono flex-1 text-center select-none">
-                    {widget.title}.json
-                  </span>
-                  {!isViewer && !isEditingLayout && (
-                    <button
-                      onClick={() => handleDeleteWidget(widget.id, widget.title)}
-                      className="text-[#4d4f46] hover:text-red-500 hover:bg-red-500/10 p-1 rounded transition-all"
-                      title="Eliminar widget"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
+        )}
 
-                {/* Chart container */}
-                <div className="flex-1 min-h-0 p-5 bg-white">
-                  <ErrorBoundary>
-                    <WidgetContainer
-                      dashboardId={dashboard.id}
-                      widget={widget}
-                    />
-                  </ErrorBoundary>
-                </div>
-              </SpotlightCard>
-            ))}
-          </ReactGridLayoutWithWidth>
-        </div>
-      )}
+        {/* Widgets Canvas */}
+        {activeWidgets.length === 0 ? (
+          <div className="border-2 border-dashed border-[#23251d] rounded-2xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-[4px_4px_0px_0px_#23251d]">
+            <div className="p-4 bg-[#f4f4f0] border-2 border-[#23251d] rounded-2xl text-slate-500 mb-4">
+              <LayoutDashboard className="h-8 w-8 text-[#f7a501]" />
+            </div>
+            <h3 className="text-base font-extrabold text-[#23251d] font-mono">Esta sección está vacía</h3>
+            <p className="text-xs text-[#4d4f46] max-w-xs mt-1 mb-6 leading-relaxed font-mono">
+              Agrega widgets visuales o narrativos para construir esta sección del dashboard.
+            </p>
+            {!isViewer && (
+              <Link
+                to={`/dashboards/${dashboard.id}/widgets/new${activePageQuery}`}
+                className="btn-retro-primary"
+              >
+                <Plus className="h-4 w-4 text-[#23251d]" /> Agregar primer widget
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className={isEditingLayout ? 'dashboard-studio-canvas relative rounded-3xl border-2 border-dashed border-[#23251d]/30 bg-white/35 p-3' : 'relative'}>
+            <ReactGridLayoutWithWidth
+              className="layout"
+              layout={localLayouts}
+              cols={12}
+              rowHeight={80}
+              isDraggable={isEditingLayout}
+              isResizable={isEditingLayout}
+              resizeHandles={['se', 'e', 's']}
+              draggableHandle=".drag-handle"
+              onLayoutChange={handleLayoutChange}
+              margin={isEditingLayout ? [16, 16] : [20, 20]}
+            >
+              {activeWidgets.map((widget) => (
+                <SpotlightCard
+                  key={widget.id}
+                  onClick={() => {
+                    if (isEditingLayout && !isViewer) {
+                      setSelectedWidgetId(widget.id);
+                    }
+                  }}
+                  className={`hover:border-[#f7a501] !p-0 ${isEditingLayout ? 'overflow-visible' : ''} ${
+                    selectedWidgetId === widget.id
+                      ? 'border-[#f7a501] ring-4 ring-[#f7a501]/25'
+                      : isEditingLayout
+                        ? 'border-dashed border-[#f7a501] bg-[#f7a501]/5'
+                        : 'border-[#23251d]'
+                  }`}
+                >
+                  {/* Retro OS Header Bar */}
+                  <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3 drag-handle cursor-grab active:cursor-grabbing">
+                    <div className="flex gap-1.5 shrink-0">
+                      <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
+                      <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
+                      <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
+                    </div>
+                    <span className="text-xs font-extrabold text-[#23251d] truncate font-mono flex-1 text-center select-none">
+                      {widget.title}.json
+                    </span>
+                    {!isViewer && !isEditingLayout && (
+                      <button
+                        onClick={() => handleDeleteWidget(widget.id, widget.title)}
+                        className="text-[#4d4f46] hover:text-red-500 hover:bg-red-500/10 p-1 rounded transition-all"
+                        title="Eliminar widget"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Chart container */}
+                  <div className="flex-1 min-h-0 p-5 bg-white">
+                    <ErrorBoundary>
+                      <WidgetContainer
+                        dashboardId={dashboard.id}
+                        widget={widget}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                </SpotlightCard>
+              ))}
+            </ReactGridLayoutWithWidth>
+          </div>
+        )}
+
+        {isEditingLayout && !isViewer && (
+          <DashboardPropertiesPanel
+            widget={selectedWidget}
+            isSaving={isUpdatingWidget}
+            onSave={handleSaveWidgetProperties}
+            onDelete={(widget) => handleDeleteWidget(widget.id, widget.title)}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -508,13 +660,18 @@ function WidgetContainer({
   widget,
 }: {
   dashboardId: string;
-  widget: any;
+  widget: DashboardWidget;
 }) {
+  const needsData = widgetNeedsData(widget.type);
   const [data, setData] = useState<Record<string, any>[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(needsData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!needsData) {
+      return;
+    }
+
     let active = true;
     async function loadData() {
       try {
@@ -541,7 +698,11 @@ function WidgetContainer({
     return () => {
       active = false;
     };
-  }, [dashboardId, widget.id, widget.updatedAt]);
+  }, [dashboardId, needsData, widget.id, widget.updatedAt]);
+
+  if (!needsData) {
+    return <DashboardWidgetRenderer widget={widget} />;
+  }
 
   if (loading) {
     return (
@@ -564,10 +725,6 @@ function WidgetContainer({
   }
 
   return (
-    <ChartRenderer
-      type={widget.type}
-      chartConfig={widget.chartConfig}
-      data={data || []}
-    />
+    <DashboardWidgetRenderer widget={widget} data={data || []} />
   );
 }

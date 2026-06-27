@@ -149,6 +149,32 @@ body {
   border-color: #f7a501 !important;
 }
 
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle {
+  height: 28px !important;
+  width: 28px !important;
+  opacity: 1 !important;
+  z-index: 30;
+}
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle::after {
+  right: 7px !important;
+  bottom: 7px !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-right: 3px solid #f7a501 !important;
+  border-bottom: 3px solid #f7a501 !important;
+}
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-e::after,
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-s::after {
+  border-color: #23251d !important;
+}
+
+.dashboard-studio-canvas .react-grid-item.resizing {
+  z-index: 40;
+}
+
 /* Mac OS retro windows control circles */
 .window-circle-red {
   background-color: #ff5f56;

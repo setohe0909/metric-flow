@@ -14,21 +14,46 @@ const DASHBOARD_LIST_VIEW = {
   updatedAt: true,
 } as const;
 
+const SAFE_WIDGET_VIEW = {
+  id: true,
+  pageId: true,
+  title: true,
+  type: true,
+  chartConfig: true,
+  configVersion: true,
+  dataConfig: true,
+  visualConfig: true,
+  interactionConfig: true,
+  layoutX: true,
+  layoutY: true,
+  layoutW: true,
+  layoutH: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 const DASHBOARD_DETAIL_VIEW = {
   ...DASHBOARD_LIST_VIEW,
-  widgets: {
+  config: true,
+  pages: {
     select: {
       id: true,
       title: true,
-      type: true,
-      chartConfig: true,
-      layoutX: true,
-      layoutY: true,
-      layoutW: true,
-      layoutH: true,
+      slug: true,
+      icon: true,
+      order: true,
+      config: true,
       createdAt: true,
       updatedAt: true,
+      widgets: {
+        select: SAFE_WIDGET_VIEW,
+        orderBy: { createdAt: 'asc' as const },
+      },
     },
+    orderBy: { order: 'asc' as const },
+  },
+  widgets: {
+    select: SAFE_WIDGET_VIEW,
     orderBy: { createdAt: 'asc' as const },
   },
 } as const;
@@ -48,6 +73,14 @@ export class DashboardService {
         createdByUserId: userId,
         name: dto.name,
         description: dto.description,
+        pages: {
+          create: {
+            title: 'Resumen',
+            slug: 'resumen',
+            icon: 'layout-dashboard',
+            order: 0,
+          },
+        },
       },
     });
   }
@@ -103,9 +136,15 @@ export class DashboardService {
       },
       orderBy: { createdAt: 'asc' as const },
     };
+    const pages = {
+      include: {
+        widgets,
+      },
+      orderBy: { order: 'asc' as const },
+    };
     const dashboard = await this.prisma.dashboard.findFirst({
       where,
-      include: { widgets },
+      include: { pages, widgets },
     });
 
     if (!dashboard) {

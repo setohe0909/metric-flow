@@ -3,10 +3,15 @@ import { apiClient } from '@/lib/api-client';
 
 export interface WidgetPayload {
   dashboardId: string;
+  pageId?: string;
   queryId?: string;
   title: string;
   type: string; // table, bar, line, kpi, pie
   chartConfig: Record<string, any>;
+  configVersion?: number;
+  dataConfig?: Record<string, any>;
+  visualConfig?: Record<string, any>;
+  interactionConfig?: Record<string, any>;
   layoutX?: number;
   layoutY?: number;
   layoutW?: number;

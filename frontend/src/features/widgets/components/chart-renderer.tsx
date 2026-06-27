@@ -18,11 +18,15 @@ import { ResultsTable } from '@/features/queries/components/results-table';
 import { AlertCircle } from 'lucide-react';
 
 interface ChartRendererProps {
-  type: string; // 'bar' | 'line' | 'pie' | 'kpi' | 'table'
+  type: string; // 'bar' | 'stacked-bar' | 'line' | 'pie' | 'kpi' | 'table'
   chartConfig: {
     xAxis?: string;
+    xAxes?: string[];
     yAxis?: string;
+    yAxes?: string[];
     color?: string;
+    colors?: Record<string, string>;
+    xAxisSeparator?: string;
     kpiColumn?: string;
     kpiLabel?: string;
     [key: string]: any;
@@ -31,6 +35,35 @@ interface ChartRendererProps {
 }
 
 const PRESET_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+const CONCATENATED_X_AXIS_KEY = '__querylens_x_axis_label';
+
+function getXAxisKeys(chartConfig: ChartRendererProps['chartConfig']) {
+  const configuredKeys = chartConfig.xAxes?.filter(Boolean) ?? [];
+  return configuredKeys.length > 0 ? configuredKeys : chartConfig.xAxis ? [chartConfig.xAxis] : [];
+}
+
+function getYAxisKeys(chartConfig: ChartRendererProps['chartConfig']) {
+  const configuredKeys = chartConfig.yAxes?.filter(Boolean) ?? [];
+  return configuredKeys.length > 0 ? configuredKeys : chartConfig.yAxis ? [chartConfig.yAxis] : [];
+}
+
+function buildChartData(
+  data: ChartRendererProps['data'],
+  xAxisKeys: string[],
+  separator: string,
+) {
+  if (xAxisKeys.length <= 1) {
+    return data;
+  }
+
+  return data.map((row) => ({
+    ...row,
+    [CONCATENATED_X_AXIS_KEY]: xAxisKeys
+      .map((key) => row[key])
+      .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
+      .join(separator),
+  }));
+}
 
 export function ChartRenderer({ type, chartConfig, data }: ChartRendererProps) {
   if (!data || data.length === 0) {
@@ -42,16 +75,26 @@ export function ChartRenderer({ type, chartConfig, data }: ChartRendererProps) {
     );
   }
 
-  const { xAxis, yAxis, color = '#3b82f6', kpiColumn } = chartConfig;
+  const { color = '#3b82f6', colors = {}, kpiColumn, xAxisSeparator = ' - ' } = chartConfig;
+  const xAxisKeys = getXAxisKeys(chartConfig);
+  const yAxisKeys = getYAxisKeys(chartConfig);
+  const xAxisDataKey = xAxisKeys.length > 1 ? CONCATENATED_X_AXIS_KEY : xAxisKeys[0];
+  const chartData = buildChartData(data, xAxisKeys, xAxisSeparator);
 
   // Custom tooltips with dark styles
   const renderTooltip = (props: any) => {
-    const { active, payload } = props;
+    const { active, label, payload } = props;
     if (active && payload && payload.length) {
       return (
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 shadow-xl text-xs">
-          <p className="font-semibold text-white mb-1">{payload[0].name || payload[0].payload[xAxis || '']}</p>
-          <p className="text-blue-400 font-bold">Valor: {payload[0].value}</p>
+          <p className="font-semibold text-white mb-1">{label || payload[0].payload[xAxisDataKey || '']}</p>
+          <div className="space-y-0.5">
+            {payload.map((item: any) => (
+              <p key={item.dataKey} className="font-bold" style={{ color: item.color || '#60a5fa' }}>
+                {item.name || item.dataKey}: {item.value}
+              </p>
+            ))}
+          </div>
         </div>
       );
     }
@@ -86,15 +129,16 @@ export function ChartRenderer({ type, chartConfig, data }: ChartRendererProps) {
     }
 
     case 'bar': {
-      if (!xAxis || !yAxis) {
+      const yAxis = yAxisKeys[0];
+      if (!xAxisDataKey || !yAxis) {
         throw new Error('Ejes X o Y no seleccionados');
       }
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
             <XAxis
-              dataKey={xAxis}
+              dataKey={xAxisDataKey}
               stroke="#64748b"
               fontSize={10}
               tickLine={false}
@@ -115,16 +159,56 @@ export function ChartRenderer({ type, chartConfig, data }: ChartRendererProps) {
       );
     }
 
-    case 'line': {
-      if (!xAxis || !yAxis) {
+    case 'stacked-bar': {
+      if (!xAxisDataKey || yAxisKeys.length === 0) {
         throw new Error('Ejes X o Y no seleccionados');
       }
       return (
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
             <XAxis
-              dataKey={xAxis}
+              dataKey={xAxisDataKey}
+              stroke="#64748b"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              dy={10}
+            />
+            <YAxis
+              stroke="#64748b"
+              fontSize={10}
+              tickLine={false}
+              axisLine={false}
+              dx={-5}
+            />
+            <Tooltip content={renderTooltip} cursor={{ fill: '#334155', opacity: 0.1 }} />
+            <Legend verticalAlign="top" iconType="circle" wrapperStyle={{ fontSize: '10px', paddingBottom: '6px' }} />
+            {yAxisKeys.map((key, index) => (
+              <Bar
+                key={key}
+                dataKey={key}
+                stackId="querylens-stacked-bar"
+                fill={colors[key] || PRESET_COLORS[index % PRESET_COLORS.length]}
+                radius={index === yAxisKeys.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    case 'line': {
+      const yAxis = yAxisKeys[0];
+      if (!xAxisDataKey || !yAxis) {
+        throw new Error('Ejes X o Y no seleccionados');
+      }
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+            <XAxis
+              dataKey={xAxisDataKey}
               stroke="#64748b"
               fontSize={10}
               tickLine={false}
@@ -153,8 +237,8 @@ export function ChartRenderer({ type, chartConfig, data }: ChartRendererProps) {
     }
 
     case 'pie': {
-      const nameCol = xAxis || Object.keys(data[0])[0];
-      const valCol = yAxis || Object.keys(data[0])[1];
+      const nameCol = xAxisKeys[0] || Object.keys(data[0])[0];
+      const valCol = yAxisKeys[0] || Object.keys(data[0])[1];
 
       if (!valCol) {
         throw new Error('No hay columnas suficientes para generar el gráfico circular');

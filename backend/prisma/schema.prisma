@@ -128,23 +128,48 @@ model Dashboard {
   publishedAt    DateTime?    @map("published_at") @db.Timestamptz
   shareToken     String?      @unique @map("share_token")
   createdByUserId String?      @map("created_by_id") @db.Uuid
+  config         Json?
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdByUser  User?        @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  pages          DashboardPage[]
   widgets        Widget[]
 
   @@map("dashboards")
 }
 
+model DashboardPage {
+  id          String    @id @default(uuid()) @db.Uuid
+  dashboardId String    @map("dashboard_id") @db.Uuid
+  title       String
+  slug        String
+  icon        String?
+  order       Int       @default(0)
+  config      Json?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  widgets     Widget[]
+
+  @@unique([dashboardId, slug])
+  @@map("dashboard_pages")
+}
+
 model Widget {
   id          String    @id @default(uuid()) @db.Uuid
   dashboardId String    @map("dashboard_id") @db.Uuid
+  pageId      String?   @map("page_id") @db.Uuid
   queryId     String?   @map("query_id") @db.Uuid
   title       String
   type        String    // table, bar, line, kpi, pie
   chartConfig Json      @map("chart_config")
+  configVersion Int     @default(1) @map("config_version")
+  dataConfig  Json?     @map("data_config")
+  visualConfig Json?    @map("visual_config")
+  interactionConfig Json? @map("interaction_config")
   layoutX     Int       @map("layout_x")
   layoutY     Int       @map("layout_y")
   layoutW     Int       @map("layout_w")
@@ -153,6 +178,7 @@ model Widget {
   updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 
   dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  page        DashboardPage? @relation(fields: [pageId], references: [id], onDelete: SetNull)
   query       Query?    @relation(fields: [queryId], references: [id], onDelete: SetNull)
 
   @@map("widgets")
