@@ -57,10 +57,10 @@ export function DashboardStudioPalette({
   onOpenChartCreator,
 }: DashboardStudioPaletteProps) {
   return (
-    <aside className="rounded-2xl border-2 border-[#23251d] bg-[#23251d] p-4 text-white shadow-[4px_4px_0px_0px_#f7a501] lg:sticky lg:top-24 lg:self-start">
-      <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.06] p-3">
-        <div className="mb-3 flex items-center gap-2 border-b border-white/15 pb-2">
-          <LayoutDashboard className="h-4 w-4 text-[#f7a501]" />
+    <aside className="rounded-2xl border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] p-4 text-[var(--color-ink)] shadow-[var(--shadow-retro-strong)] lg:sticky lg:top-24 lg:self-start">
+      <div className="mb-4 rounded-xl border border-[var(--color-border-soft)] bg-[color-mix(in_srgb,var(--color-chart-surface)_8%,transparent)] p-3">
+        <div className="mb-3 flex items-center gap-2 border-b border-[var(--color-border-soft)] pb-2">
+          <LayoutDashboard className="h-4 w-4 text-[var(--color-accent)]" />
           <p className="text-[11px] font-extrabold uppercase tracking-wider font-mono">
             Secciones
           </p>
@@ -73,10 +73,10 @@ export function DashboardStudioPalette({
                 key={page.id}
                 type="button"
                 onClick={() => onSelectPage(page.id)}
-                className={`w-full rounded-xl border-2 px-3 py-2 text-left text-xs font-extrabold transition-all focus:outline-none focus:ring-2 focus:ring-[#f7a501] ${
+                className={`w-full rounded-xl border-2 px-3 py-2 text-left text-xs font-extrabold transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] ${
                   active
-                    ? 'border-[#f7a501] bg-[#f7a501] text-[#23251d] shadow-[2px_2px_0px_0px_#eeefe9]'
-                    : 'border-white/20 bg-white/10 text-white hover:border-[#f7a501]'
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-on-accent)] shadow-[var(--shadow-retro-soft)]'
+                    : 'border-[var(--color-border-soft)] bg-[var(--color-surface)] text-[var(--color-ink)] hover:border-[var(--color-accent)]'
                 }`}
               >
                 {page.title}
@@ -86,7 +86,7 @@ export function DashboardStudioPalette({
         </nav>
         <button
           type="button"
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-white/25 bg-white/10 px-3 py-2 text-xs font-bold text-white/80 transition-all hover:border-[#f7a501] hover:text-white"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-[var(--color-border-soft)] bg-[var(--color-surface)] px-3 py-2 text-xs font-bold text-[var(--color-muted-text)] transition-all hover:border-[var(--color-accent)] hover:text-[var(--color-ink)]"
           title="Próximamente: crear sección"
         >
           <Plus className="h-3.5 w-3.5" />
@@ -94,13 +94,13 @@ export function DashboardStudioPalette({
         </button>
       </div>
 
-      <div className="mb-3 flex items-center gap-2 border-b-2 border-white/20 pb-3">
-        <LayoutTemplate className="h-4 w-4 text-[#f7a501]" />
+      <div className="mb-3 flex items-center gap-2 border-b-2 border-[var(--color-border-soft)] pb-3">
+        <LayoutTemplate className="h-4 w-4 text-[var(--color-accent)]" />
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-wider font-mono">
             Studio
           </p>
-          <p className="text-[10px] text-white/60">Agrega bloques al canvas</p>
+          <p className="text-[10px] text-[var(--color-muted-text)]">Agrega bloques al canvas</p>
         </div>
       </div>
 
@@ -111,13 +111,13 @@ export function DashboardStudioPalette({
             type="button"
             disabled={disabled}
             onClick={() => onAddWidget(type)}
-            className="group w-full rounded-xl border-2 border-white/20 bg-white/10 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[#f7a501] hover:bg-[#f7a501] hover:text-[#23251d] disabled:cursor-not-allowed disabled:opacity-50"
+            className="group w-full rounded-xl border-2 border-[var(--color-border-soft)] bg-[var(--color-surface)] p-3 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-[var(--color-on-accent)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <div className="flex items-start gap-2">
-              <Icon className="mt-0.5 h-4 w-4 text-[#f7a501] group-hover:text-[#23251d]" />
+              <Icon className="mt-0.5 h-4 w-4 text-[var(--color-accent)] group-hover:text-[var(--color-on-accent)]" />
               <div>
                 <p className="text-xs font-extrabold font-mono">{label}</p>
-                <p className="text-[10px] leading-snug text-white/60 group-hover:text-[#23251d]/70">
+                <p className="text-[10px] leading-snug text-[var(--color-muted-text)] group-hover:text-[var(--color-on-accent)]/70">
                   {description}
                 </p>
               </div>
@@ -129,13 +129,13 @@ export function DashboardStudioPalette({
           type="button"
           disabled={disabled}
           onClick={onOpenChartCreator}
-          className="w-full rounded-xl border-2 border-[#f7a501] bg-[#f7a501] p-3 text-left text-[#23251d] shadow-[2px_2px_0px_0px_#eeefe9] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full rounded-xl border-2 border-[var(--color-accent)] bg-[var(--color-accent)] p-3 text-left text-[var(--color-on-accent)] shadow-[var(--shadow-retro-soft)] transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <div className="flex items-start gap-2">
             <BarChart3 className="mt-0.5 h-4 w-4" />
             <div>
               <p className="text-xs font-extrabold font-mono">Chart / KPI</p>
-              <p className="text-[10px] leading-snug text-[#23251d]/70">
+              <p className="text-[10px] leading-snug text-[color-mix(in_srgb,var(--color-on-accent)_70%,transparent)]">
                 Abre el creador con consultas, ejes y colores
               </p>
             </div>
@@ -143,12 +143,12 @@ export function DashboardStudioPalette({
         </button>
       </div>
 
-      <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-2 text-[10px] leading-relaxed text-white/60">
-        <MousePointer2 className="mr-1 inline h-3 w-3 text-[#f7a501]" />
+      <div className="mt-3 rounded-xl border border-[var(--color-border-soft)] bg-[color-mix(in_srgb,var(--color-canvas)_60%,transparent)] p-2 text-[10px] leading-relaxed text-[var(--color-muted-text)]">
+        <MousePointer2 className="mr-1 inline h-3 w-3 text-[var(--color-accent)]" />
         Selecciona un widget del canvas para editar sus propiedades.
       </div>
 
-      <div className="mt-2 flex items-center gap-1 text-[10px] text-white/50">
+      <div className="mt-2 flex items-center gap-1 text-[10px] text-[var(--color-subtle-text)]">
         <Table2 className="h-3 w-3" />
         Tablas y charts avanzados siguen en el creador actual.
       </div>

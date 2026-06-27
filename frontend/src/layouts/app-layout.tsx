@@ -17,15 +17,15 @@ export default function AppLayout() {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center gap-4"
-        style={{ backgroundColor: '#eeefe9' }}
+        style={{ backgroundColor: 'var(--color-canvas)' }}
       >
         <div
           className="p-3 rounded-2xl"
-          style={{ backgroundColor: '#23251d', boxShadow: '4px 4px 0px 0px #f7a501' }}
+          style={{ backgroundColor: 'var(--color-ink)', boxShadow: '4px 4px 0px 0px var(--color-accent)' }}
         >
-          <Database className="h-7 w-7" style={{ color: '#f7a501' }} />
+          <Database className="h-7 w-7" style={{ color: 'var(--color-accent)' }} />
         </div>
-        <div className="flex items-center gap-2" style={{ color: '#23251d' }}>
+        <div className="flex items-center gap-2" style={{ color: 'var(--color-ink)' }}>
           <Loader2 className="animate-spin h-4 w-4" />
           <span className="text-sm font-semibold">Cargando MetricFlow...</span>
         </div>
@@ -38,9 +38,27 @@ export default function AppLayout() {
     return <Navigate to="/login" replace />;
   }
 
-  // Perfil cargó y no hay usuario válido → redirigir al login
-  if (!isLoadingProfile && !isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  // Si hay token pero Zustand aún no hidrató el usuario desde /auth/me,
+  // mantenemos el loader. Si el token es inválido, el interceptor 401 limpia
+  // localStorage y en el siguiente render sí se redirige a /login.
+  if (hasToken && !isAuthenticated) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center gap-4"
+        style={{ backgroundColor: 'var(--color-canvas)' }}
+      >
+        <div
+          className="p-3 rounded-2xl"
+          style={{ backgroundColor: 'var(--color-ink)', boxShadow: '4px 4px 0px 0px var(--color-accent)' }}
+        >
+          <Database className="h-7 w-7" style={{ color: 'var(--color-accent)' }} />
+        </div>
+        <div className="flex items-center gap-2" style={{ color: 'var(--color-ink)' }}>
+          <Loader2 className="animate-spin h-4 w-4" />
+          <span className="text-sm font-semibold">Cargando MetricFlow...</span>
+        </div>
+      </div>
+    );
   }
 
   if (user?.mustChangePassword) {
@@ -48,12 +66,12 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#eeefe9] font-sans text-[#23251d]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-canvas)] font-sans text-[var(--color-ink)]">
       {/* Sidebar navigation */}
       <Sidebar />
 
       {/* Main viewport */}
-      <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[#eeefe9] bg-grid-dots relative">
+      <main className="flex-1 flex flex-col h-full overflow-y-auto bg-[var(--color-canvas)] bg-grid-dots relative">
         <div className="p-8 max-w-7xl w-full mx-auto relative z-10">
           <Outlet />
         </div>

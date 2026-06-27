@@ -15,10 +15,10 @@ export function DashboardSidebar({
   onSelectPage,
 }: DashboardSidebarProps) {
   return (
-    <aside className="rounded-2xl border-2 border-[#23251d] bg-[#f4f4f0] p-3 shadow-[4px_4px_0px_0px_#23251d] lg:sticky lg:top-24 lg:self-start">
-      <div className="flex items-center gap-2 border-b-2 border-[#23251d] pb-3 mb-3">
-        <LayoutDashboard className="h-4 w-4 text-[#f7a501]" />
-        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#23251d] font-mono">
+    <aside className="rounded-2xl border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] p-3 shadow-[var(--shadow-retro-strong)] lg:sticky lg:top-24 lg:self-start">
+      <div className="flex items-center gap-2 border-b-2 border-[var(--color-border-soft)] pb-3 mb-3">
+        <LayoutDashboard className="h-4 w-4 text-[var(--color-accent)]" />
+        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[var(--color-ink)] font-mono">
           Secciones
         </span>
       </div>
@@ -30,12 +30,12 @@ export function DashboardSidebar({
               key={page.id}
               type="button"
               onClick={() => onSelectPage(page.id)}
-              className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[#f7a501]"
+              className="w-full rounded-xl px-3 py-2 text-left text-xs font-bold transition-all focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
               style={{
-                border: '2px solid #23251d',
-                backgroundColor: active ? '#f7a501' : '#eeefe9',
-                color: '#23251d',
-                boxShadow: active ? '2px 2px 0px 0px #23251d' : 'none',
+                border: '2px solid var(--color-border-strong)',
+                backgroundColor: active ? 'var(--color-accent)' : 'var(--color-chart-surface)',
+                color: active ? '#23251d' : 'var(--color-ink)',
+                boxShadow: active ? 'var(--shadow-retro-soft)' : 'none',
               }}
             >
               {page.title}

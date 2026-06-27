@@ -1,15 +1,77 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: light;
+  --color-canvas: #eeefe9;
+  --color-panel: #e4e5de;
+  --color-surface: #f4f4f0;
+  --color-card: #ffffff;
+  --color-widget: #ffffff;
+  --color-widget-header: #e4e5de;
+  --color-chart-surface: #ffffff;
+  --color-chart-ink: #23251d;
+  --color-border-strong: #23251d;
+  --color-border-soft: rgba(35, 37, 29, 0.16);
+  --shadow-retro-strong: 4px 4px 0px 0px #23251d;
+  --shadow-retro-soft: 2px 2px 0px 0px #23251d;
+  --color-muted-surface: #d8d9d2;
+  --color-ink: #23251d;
+  --color-muted-text: #4d4f46;
+  --color-subtle-text: #6b6e62;
+  --color-accent: #f7a501;
+  --color-on-accent: #23251d;
+  --color-accent-hover: #ffb81c;
+  --color-danger: #ffa4a4;
+  --color-danger-hover: #ffbebe;
+  --color-error-surface: #ffdada;
+  --color-grid-dot: rgba(35, 37, 29, 0.09);
+  --color-spotlight-warm: rgba(247, 165, 1, 0.05);
+  --color-spotlight-cool: rgba(59, 130, 246, 0.02);
+  --color-spotlight-border-warm: rgba(247, 165, 1, 0.35);
+  --color-spotlight-border-cool: rgba(59, 130, 246, 0.25);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-canvas: #161711;
+  --color-panel: #202217;
+  --color-surface: #282a1e;
+  --color-card: #1d1f16;
+  --color-widget: #202217;
+  --color-widget-header: #2b2e22;
+  --color-chart-surface: #f2f0e7;
+  --color-chart-ink: #23251d;
+  --color-border-strong: #ded8bc;
+  --color-border-soft: rgba(244, 241, 223, 0.2);
+  --shadow-retro-strong: 4px 4px 0px 0px rgba(0, 0, 0, 0.72);
+  --shadow-retro-soft: 2px 2px 0px 0px rgba(0, 0, 0, 0.64);
+  --color-muted-surface: #333629;
+  --color-ink: #f4f1df;
+  --color-muted-text: #cbc7ad;
+  --color-subtle-text: #a9a48d;
+  --color-accent: #ffb21a;
+  --color-on-accent: #23251d;
+  --color-accent-hover: #ffc856;
+  --color-danger: #ff9f9f;
+  --color-danger-hover: #ffc0c0;
+  --color-error-surface: #4a2020;
+  --color-grid-dot: rgba(244, 241, 223, 0.12);
+  --color-spotlight-warm: rgba(255, 178, 26, 0.13);
+  --color-spotlight-cool: rgba(104, 165, 255, 0.08);
+  --color-spotlight-border-warm: rgba(255, 178, 26, 0.55);
+  --color-spotlight-border-cool: rgba(104, 165, 255, 0.38);
+}
+
 /* PostHog Retro Light/Cream Palette & Font Defaults */
 body {
-  background-color: #eeefe9; /* Warm Cream Canvas */
-  color: #23251d; /* Deep Olive Charcoal */
+  background-color: var(--color-canvas); /* Warm Cream Canvas */
+  color: var(--color-ink); /* Deep Olive Charcoal */
   font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
 /* Fondo con rejilla de puntos estilo PostHog */
 .bg-grid-dots {
-  background-image: radial-gradient(rgba(35, 37, 29, 0.09) 1.3px, transparent 1.3px);
+  background-image: radial-gradient(var(--color-grid-dot) 1.3px, transparent 1.3px);
   background-size: 20px 20px;
 }
 
@@ -21,22 +83,22 @@ body {
   gap: 0.5rem;
   font-weight: 700;
   font-size: 0.8125rem;
-  color: #23251d;
-  background-color: #f7a501; /* PostHog Yellow-Orange */
-  border: 2px solid #23251d;
+  color: var(--color-on-accent);
+  background-color: var(--color-accent); /* PostHog Yellow-Orange */
+  border: 2px solid var(--color-border-strong);
   border-radius: 0.75rem;
   padding: 0.5rem 0.875rem;
-  box-shadow: 3px 3px 0px 0px #23251d;
+  box-shadow: 3px 3px 0px 0px var(--color-border-strong);
   transition: all 100ms ease;
   cursor: pointer;
 }
 .btn-retro-primary:hover {
-  box-shadow: 1px 1px 0px 0px #23251d;
+  box-shadow: 1px 1px 0px 0px var(--color-border-strong);
   transform: translate(2px, 2px);
-  background-color: #ffb81c;
+  background-color: var(--color-accent-hover);
 }
 .btn-retro-primary:active {
-  box-shadow: 0px 0px 0px 0px #23251d;
+  box-shadow: 0px 0px 0px 0px var(--color-border-strong);
   transform: translate(3px, 3px);
 }
 .btn-retro-primary:disabled {
@@ -52,22 +114,22 @@ body {
   gap: 0.5rem;
   font-weight: 600;
   font-size: 0.8125rem;
-  color: #23251d;
-  background-color: #f4f4f0; /* Retro light beige */
-  border: 2px solid #23251d;
+  color: var(--color-ink);
+  background-color: var(--color-surface); /* Retro light beige */
+  border: 2px solid var(--color-border-strong);
   border-radius: 0.75rem;
   padding: 0.5rem 0.875rem;
-  box-shadow: 3px 3px 0px 0px #23251d;
+  box-shadow: 3px 3px 0px 0px var(--color-border-strong);
   transition: all 100ms ease;
   cursor: pointer;
 }
 .btn-retro-secondary:hover {
-  background-color: #ffffff;
-  box-shadow: 1px 1px 0px 0px #23251d;
+  background-color: var(--color-card);
+  box-shadow: 1px 1px 0px 0px var(--color-border-strong);
   transform: translate(2px, 2px);
 }
 .btn-retro-secondary:active {
-  box-shadow: 0px 0px 0px 0px #23251d;
+  box-shadow: 0px 0px 0px 0px var(--color-border-strong);
   transform: translate(3px, 3px);
 }
 
@@ -79,22 +141,22 @@ body {
   gap: 0.5rem;
   font-weight: 600;
   font-size: 0.8125rem;
-  color: #23251d;
-  background-color: #ffa4a4; /* Retro red */
-  border: 2px solid #23251d;
+  color: var(--color-ink);
+  background-color: var(--color-danger); /* Retro red */
+  border: 2px solid var(--color-border-strong);
   border-radius: 0.75rem;
   padding: 0.5rem 0.875rem;
-  box-shadow: 3px 3px 0px 0px #23251d;
+  box-shadow: 3px 3px 0px 0px var(--color-border-strong);
   transition: all 100ms ease;
   cursor: pointer;
 }
 .btn-retro-danger:hover {
-  background-color: #ffbebe;
-  box-shadow: 1px 1px 0px 0px #23251d;
+  background-color: var(--color-danger-hover);
+  box-shadow: 1px 1px 0px 0px var(--color-border-strong);
   transform: translate(2px, 2px);
 }
 .btn-retro-danger:active {
-  box-shadow: 0px 0px 0px 0px #23251d;
+  box-shadow: 0px 0px 0px 0px var(--color-border-strong);
   transform: translate(3px, 3px);
 }
 
@@ -107,8 +169,8 @@ body {
   opacity: 0;
   background: radial-gradient(
     400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
-    rgba(247, 165, 1, 0.05) 0%,
-    rgba(59, 130, 246, 0.02) 60%,
+    var(--color-spotlight-warm) 0%,
+    var(--color-spotlight-cool) 60%,
     transparent 100%
   );
   transition: opacity 300ms ease;
@@ -122,8 +184,8 @@ body {
   padding: 2px;
   background: radial-gradient(
     250px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
-    rgba(247, 165, 1, 0.35) 0%,
-    rgba(59, 130, 246, 0.25) 50%,
+    var(--color-spotlight-border-warm) 0%,
+    var(--color-spotlight-border-cool) 50%,
     transparent 100%
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -137,42 +199,48 @@ body {
 
 /* React grid layout drag handles & custom active placeholder styling */
 .react-grid-item.react-grid-placeholder {
-  background: rgba(247, 165, 1, 0.08) !important;
-  border: 2px dashed #f7a501 !important;
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent) !important;
+  border: 2px dashed var(--color-accent) !important;
   border-radius: 1rem !important;
 }
 .react-grid-item .react-resizable-handle::after {
-  border-right: 2px solid #a3a49e !important;
-  border-bottom: 2px solid #a3a49e !important;
+  border-right: 2px solid var(--color-subtle-text) !important;
+  border-bottom: 2px solid var(--color-subtle-text) !important;
 }
 .react-grid-item:hover .react-resizable-handle::after {
-  border-color: #f7a501 !important;
+  border-color: var(--color-accent) !important;
 }
 
 
+.dashboard-studio-canvas .react-grid-item {
+  transition: none !important;
+}
+
 .dashboard-studio-canvas .react-grid-item > .react-resizable-handle {
+  right: -8px !important;
+  bottom: -8px !important;
   height: 28px !important;
   width: 28px !important;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-accent) !important;
+  box-shadow: 2px 2px 0 0 var(--color-ink);
   opacity: 1 !important;
-  z-index: 30;
+  z-index: 50;
 }
 
 .dashboard-studio-canvas .react-grid-item > .react-resizable-handle::after {
-  right: 7px !important;
-  bottom: 7px !important;
-  width: 10px !important;
-  height: 10px !important;
-  border-right: 3px solid #f7a501 !important;
-  border-bottom: 3px solid #f7a501 !important;
+  right: 8px !important;
+  bottom: 8px !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-right: 3px solid var(--color-ink) !important;
+  border-bottom: 3px solid var(--color-ink) !important;
 }
 
-.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-e::after,
-.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-s::after {
-  border-color: #23251d !important;
-}
-
-.dashboard-studio-canvas .react-grid-item.resizing {
-  z-index: 40;
+.dashboard-studio-canvas .react-grid-item.resizing,
+.dashboard-studio-canvas .react-grid-item.react-draggable-dragging {
+  z-index: 60;
 }
 
 /* Mac OS retro windows control circles */

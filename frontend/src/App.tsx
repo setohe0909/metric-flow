@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { I18nProvider, LanguageSwitcher } from './lib/i18n';
+import { ThemeProvider, ThemeToggle } from './lib/theme';
 
 // Layouts
 import AppLayout from './layouts/app-layout';
@@ -15,6 +17,7 @@ import QueryEditor from './pages/queries/editor';
 import DatasourceManager from './pages/datasources/manager';
 import OrgSettings from './pages/settings/organization';
 import ChangePassword from './pages/change-password';
+import Docs from './pages/docs';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,29 +31,38 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/setup" element={<Setup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/change-password" element={<ChangePassword />} />
-          <Route path="/shared/dashboard/:token" element={<PublicDashboardView />} />
+      <I18nProvider>
+        <ThemeProvider>
+          <BrowserRouter>
+            <div className="fixed right-4 top-4 z-[100] flex items-center gap-2 print:hidden">
+              <ThemeToggle />
+              <LanguageSwitcher />
+            </div>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/setup" element={<Setup />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/shared/dashboard/:token" element={<PublicDashboardView />} />
+            <Route path="/docs/*" element={<Docs />} />
 
-          {/* Protected Routes */}
-          <Route element={<AppLayout />}>
-            <Route path="/dashboards" element={<DashboardList />} />
-            <Route path="/dashboards/:id" element={<DashboardDetail />} />
-            <Route path="/dashboards/:dashboardId/widgets/new" element={<WidgetCreator />} />
-            <Route path="/queries" element={<QueryEditor />} />
-            <Route path="/datasources" element={<DatasourceManager />} />
-            <Route path="/settings" element={<OrgSettings />} />
-            <Route path="/" element={<Navigate to="/dashboards" replace />} />
-          </Route>
+            {/* Protected Routes */}
+            <Route element={<AppLayout />}>
+              <Route path="/dashboards" element={<DashboardList />} />
+              <Route path="/dashboards/:id" element={<DashboardDetail />} />
+              <Route path="/dashboards/:dashboardId/widgets/new" element={<WidgetCreator />} />
+              <Route path="/queries" element={<QueryEditor />} />
+              <Route path="/datasources" element={<DatasourceManager />} />
+              <Route path="/settings" element={<OrgSettings />} />
+              <Route path="/" element={<Navigate to="/dashboards" replace />} />
+            </Route>
 
-          {/* Fallback redirect */}
-          <Route path="*" element={<Navigate to="/dashboards" replace />} />
-        </Routes>
-      </BrowserRouter>
+            {/* Fallback redirect */}
+            <Route path="*" element={<Navigate to="/dashboards" replace />} />
+          </Routes>
+          </BrowserRouter>
+        </ThemeProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

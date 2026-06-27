@@ -29,7 +29,7 @@
 
 **MetricFlow** is a self-hosted, open-source business intelligence platform that lets you:
 
-- 🔌 **Connect** to PostgreSQL and MySQL for officially supported query execution
+- 🔌 **Connect** to PostgreSQL, MySQL, SQL Server, SQLite, CSV, BigQuery, and Snowflake
 - 🧠 **Write SQL** in a rich Monaco editor with live query execution
 - 📊 **Build charts** — bar, line, pie, KPI cards, and data tables
 - 🗂️ **Compose dashboards** with drag-and-drop widget layouts
@@ -52,7 +52,7 @@
 | **ORM** | Prisma 6 |
 | **Database** | PostgreSQL 15 (primary store) |
 | **Auth** | JWT + Passport.js, bcrypt |
-| **Drivers** | `pg`, `mysql2`, `sqlite3`, `csv-parse`, `@google-cloud/bigquery`, `snowflake-sdk` |
+| **Drivers** | `pg`, `mysql2`, `mssql`, `sqlite3`, `csv-parse`, `@google-cloud/bigquery`, `snowflake-sdk` |
 | **Infra** | Docker Compose |
 
 ---
@@ -73,8 +73,8 @@
 └──────┬─────────────────────────────┬────────────────┘
        │ Prisma ORM                  │ Driver per datasource
        ▼                             ▼
-  PostgreSQL 15             PostgreSQL / MySQL /
-  (metadata store)          SQLite / CSV (user data)
+  PostgreSQL 15             PostgreSQL / MySQL / SQL Server /
+  (metadata store)          SQLite / CSV / BigQuery / Snowflake (user data)
 ```
 
 ### Key Design Decisions
@@ -272,12 +272,51 @@ Open an [issue](https://github.com/setohe0909/metric-flow/issues) with:
 
 ## 🗺️ Roadmap
 
+MetricFlow is evolving toward a **hybrid BI platform**: open-source and self-hosted first, with an architecture that can also support managed or hosted deployments later.
+
+### Current delivery status
+
 - [x] Role-based column/row filtering per datasource
 - [x] Scheduled query execution & email delivery
 - [x] Dashboard embed via `<iframe>` snippet
 - [x] BigQuery and Snowflake drivers
+- [x] Initial SQL Server connector support
 - [ ] SAML / SSO integration
 - [ ] Dark mode toggle in the UI
+
+### Phase 1 — Solid open-source core
+
+- [x] Installation bootstrap and single-workspace setup flow
+- [x] Secure datasource storage with encrypted credentials
+- [x] SQL editor, saved queries, widgets, dashboards, and sharing
+- [x] Execution audit trail and read-only SQL protections
+- [x] Row and column security policies per datasource
+
+### Phase 2 — Power BI essential parity
+
+- [ ] Dataset refresh orchestration with retries, history, and failure surfacing
+- [ ] Query result caching and invalidation controls
+- [ ] Export flows for CSV, Excel, PDF, and image snapshots
+- [ ] Dashboard filters, drill-down, drill-through, and cross-widget interactions
+- [ ] Reusable semantic layer for metrics, dimensions, and governed business definitions
+- [ ] Versioned dashboard publishing and rollback support
+
+### Phase 3 — Hosted and enterprise readiness
+
+- [ ] SAML / SSO and SCIM-style user lifecycle management
+- [ ] Multi-workspace or tenant isolation model for hosted deployments
+- [ ] Secrets rotation, connection health monitoring, and background job observability
+- [ ] Usage analytics, audit exports, retention controls, and governance reports
+- [ ] Fine-grained admin controls for sharing, public embeds, and external access
+- [ ] Backup, restore, migration, and disaster-recovery playbooks
+
+### Phase 4 — Community platform and extensibility
+
+- [ ] Public plugin or connector SDK
+- [ ] Custom visualization extension model
+- [ ] Admin API and automation webhooks
+- [ ] Template gallery for dashboards, widgets, and datasource presets
+- [ ] Contributor-ready docs for connector development and deployment patterns
 
 ---
 

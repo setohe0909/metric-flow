@@ -20,7 +20,7 @@ export function SpotlightCard({ children, className = '', ...props }: SpotlightC
     <div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      className={`relative group overflow-hidden bg-white border-2 border-[#23251d] rounded-2xl transition-all shadow-[4px_4px_0px_0px_#23251d] hover:shadow-[6px_6px_0px_0px_#23251d] hover:-translate-y-0.5 ${className}`}
+      className={`relative group overflow-hidden bg-[var(--color-card)] border-2 border-[var(--color-ink)] rounded-2xl transition-all shadow-[4px_4px_0px_0px_var(--color-ink)] hover:shadow-[6px_6px_0px_0px_var(--color-ink)] hover:-translate-y-0.5 ${className}`}
       {...props}
     >
       {/* Spotlight layers */}

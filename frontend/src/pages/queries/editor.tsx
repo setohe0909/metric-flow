@@ -9,10 +9,14 @@ import { ResultsTable } from '@/features/queries/components/results-table';
 import { apiClient } from '@/lib/api-client';
 import { Play, Save, Loader2, AlertTriangle, CheckCircle, Database, Terminal, Clock, Rows, Trash2, Sliders, X, FileText, EyeOff } from 'lucide-react';
 import { ScheduleModal } from '@/features/queries/components/schedule-modal';
+import { useI18n } from '@/lib/i18n';
 
 const DEFAULT_SQL = '-- Escribe tu consulta SQL aquí\nSELECT 1 as test;';
+const DEFAULT_SQL_EN = '-- Write your SQL query here\nSELECT 1 as test;';
 
 export default function QueryEditor() {
+  const { t } = useI18n();
+  const defaultSql = t(DEFAULT_SQL);
   const navigate = useNavigate();
   const { datasources, isLoading: isLoadingDss } = useDatasources();
   const {
@@ -29,9 +33,11 @@ export default function QueryEditor() {
   const { dashboards } = useDashboards();
 
   const [selectedDsId, setSelectedDsId] = useState<string>('');
-  const [sqlCode, setSqlCode] = useState<string>(DEFAULT_SQL);
+  const [sqlCode, setSqlCode] = useState<string>(defaultSql);
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null);
+  const editorValue = sqlCode === DEFAULT_SQL || sqlCode === DEFAULT_SQL_EN ? defaultSql : sqlCode;
   
+
   // Estados de ejecución
   const [queryResult, setQueryResult] = useState<QueryRunResponse | null>(null);
   const [executionError, setExecutionError] = useState<string | null>(null);
@@ -117,7 +123,7 @@ export default function QueryEditor() {
 
   const handleRun = async () => {
     if (!selectedDsId) {
-      alert('Por favor selecciona una base de datos conectada.');
+      alert(t('Por favor selecciona una base de datos conectada.'));
       return;
     }
     setExecutionError(null);
@@ -141,7 +147,7 @@ export default function QueryEditor() {
       setQueryResult(res);
     } catch (err: any) {
       setExecutionError(
-        err.response?.data?.message || 'Error al ejecutar la consulta SQL. Revisa tu sintaxis.'
+        err.response?.data?.message || t('Error al ejecutar la consulta SQL. Revisa tu sintaxis.')
       );
     } finally {
       setPendingExecutionId(null);
@@ -151,12 +157,12 @@ export default function QueryEditor() {
 
   const handleCancelExecution = async () => {
     if (!pendingExecutionId) return;
-    setCancelMessage('Cancelando consulta...');
+    setCancelMessage(t('Cancelando consulta...'));
     try {
       await cancelQuery(pendingExecutionId);
     } catch (err: any) {
       setCancelMessage(
-        err.response?.data?.message || 'No fue posible cancelar la consulta.',
+        err.response?.data?.message || t('No fue posible cancelar la consulta.'),
       );
     }
   };
@@ -194,7 +200,7 @@ export default function QueryEditor() {
 
     const currentSql = editor.getValue();
     const range =
-      currentSql === DEFAULT_SQL
+      currentSql === DEFAULT_SQL || currentSql === defaultSql
         ? editor.getModel()?.getFullModelRange()
         : selection;
     if (!range) return;
@@ -238,22 +244,22 @@ export default function QueryEditor() {
         const suggestions: any[] = [];
 
         // Agregar sugerencias de tablas
-        currentSchema.forEach((t) => {
+        currentSchema.forEach((tableInfo) => {
           suggestions.push({
-            label: t.table,
+            label: tableInfo.table,
             kind: monaco.languages.CompletionItemKind.Struct,
-            insertText: t.table,
-            detail: 'Tabla',
+            insertText: tableInfo.table,
+            detail: t('Tabla'),
             range
           });
 
           // Agregar sugerencias de columnas
-          t.columns.forEach((col) => {
+          tableInfo.columns.forEach((col) => {
             suggestions.push({
               label: col,
               kind: monaco.languages.CompletionItemKind.Field,
               insertText: col,
-              detail: `Columna (tabla: ${t.table})`,
+              detail: `${t('Columna')} (${t('tabla')}: ${tableInfo.table})`,
               range
             });
           });
@@ -286,7 +292,7 @@ export default function QueryEditor() {
               {isLoadingDss ? (
                 <span className="text-xs text-slate-400">Cargando DBs...</span>
               ) : datasources.length === 0 ? (
-                <span className="text-xs text-red-500 font-bold">Sin DBs conectadas</span>
+                <span className="text-xs text-red-500 font-bold">{t('Sin DBs conectadas')}</span>
               ) : (
                 <select
                   value={selectedDsId}
@@ -331,7 +337,7 @@ export default function QueryEditor() {
               disabled={!selectedDsId || isRunning}
               className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
             >
-              <Save className="h-3.5 w-3.5" /> Guardar Query
+              <Save className="h-3.5 w-3.5" /> {t('Guardar consulta')}
             </button>
           </div>
         </div>
@@ -346,7 +352,7 @@ export default function QueryEditor() {
             >
               {isRunning ? (
                 <>
-                  <Loader2 className="animate-spin h-3.5 w-3.5 text-[#23251d]" /> Ejecutando...
+                  <Loader2 className="animate-spin h-3.5 w-3.5 text-[#23251d]" /> {t('Ejecutando...')}
                 </>
               ) : (
                 <>
@@ -365,7 +371,7 @@ export default function QueryEditor() {
                 ) : (
                   <X className="h-3.5 w-3.5" />
                 )}
-                {isCancelling ? 'Cancelando...' : 'Cancelar'}
+                {isCancelling ? t('Cancelando...') : t('Cancelar')}
               </button>
             ) : null}
           </div>
@@ -387,7 +393,7 @@ export default function QueryEditor() {
                 sidebarTab === 'queries' ? 'bg-white text-[#23251d]' : 'bg-[#e4e5de] text-[#4d4f46] hover:bg-white/50'
               }`}
             >
-              <FileText className="h-3.5 w-3.5" /> Queries ({savedQueries.length})
+              <FileText className="h-3.5 w-3.5" /> {t('Consultas')} ({savedQueries.length})
             </button>
             <button
               onClick={() => setSidebarTab('schema')}
@@ -409,7 +415,7 @@ export default function QueryEditor() {
               ) : savedQueries.length === 0 ? (
                 <div className="text-center py-8 px-2 text-[#4d4f46]">
                   <p className="text-xs">No hay consultas guardadas.</p>
-                  <p className="text-[10px] opacity-75 mt-1">Usa "Guardar Query" para registrar una.</p>
+                  <p className="text-[10px] opacity-75 mt-1">Usa "Guardar consulta" para registrar una.</p>
                 </div>
               ) : (
                 savedQueries.map((query) => (
@@ -441,7 +447,7 @@ export default function QueryEditor() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(`¿Estás seguro de eliminar la consulta "${query.name}"?`)) {
+                        if (confirm(t('¿Estás seguro de eliminar la consulta?').replace('{name}', query.name))) {
                           deleteQuery(query.id);
                         }
                       }}
@@ -466,45 +472,45 @@ export default function QueryEditor() {
                   <p className="text-[10px] opacity-75 mt-1">Selecciona una base de datos activa.</p>
                 </div>
               ) : (
-                schema.map((t) => (
+                schema.map((tableInfo) => (
                   <details
-                    key={t.table}
+                    key={tableInfo.table}
                     className="group border-2 border-[#23251d] rounded-xl bg-white shadow-[2px_2px_0px_0px_#23251d] overflow-hidden text-xs"
                   >
                     <summary className="bg-[#f4f4f0] p-2.5 font-bold cursor-pointer hover:bg-[#e4e5de] flex items-center justify-between select-none">
                       <span className="truncate flex items-center gap-1.5 text-[#23251d]">
-                        <Database className="h-3.5 w-3.5 text-[#f7a501]" /> {t.table}
+                        <Database className="h-3.5 w-3.5 text-[#f7a501]" /> {tableInfo.table}
                       </span>
                       <span className="text-[9px] bg-white border border-[#23251d] rounded px-1.5 py-0.5 text-[#23251d] font-bold">
-                        {t.columns.length}
+                        {tableInfo.columns.length}
                       </span>
                     </summary>
                     <div className="p-2 border-t-2 border-[#23251d] bg-white space-y-1 max-h-48 overflow-y-auto">
                       <div className="flex gap-1.5 pb-2 mb-2 border-b border-[#23251d]/10">
                         <button
-                          onClick={() => handleInsertText(`SELECT * FROM ${t.table} LIMIT 10;`)}
+                          onClick={() => handleInsertText(`SELECT * FROM ${tableInfo.table} LIMIT 10;`)}
                           className="px-2 py-1 bg-[#f7a501] border-2 border-[#23251d] rounded text-[9px] font-bold shadow-[1px_1px_0px_0px_#23251d] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all cursor-pointer"
                         >
                           SELECT *
                         </button>
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(t.table);
-                            alert(`"${t.table}" copiado al portapapeles`);
+                            navigator.clipboard.writeText(tableInfo.table);
+                            alert(t('Tabla copiada al portapapeles').replace('{table}', tableInfo.table));
                           }}
                           className="px-2 py-1 bg-white border-2 border-[#23251d] rounded text-[9px] font-bold shadow-[1px_1px_0px_0px_#23251d] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all cursor-pointer"
                         >
-                          Copiar
+                          {t('Copiar')}
                         </button>
                       </div>
-                      {t.columns.map((col) => (
+                      {tableInfo.columns.map((col) => (
                         <div key={col} className="flex items-center justify-between p-1.5 hover:bg-[#f4f4f0] rounded border border-transparent hover:border-[#23251d]/10 group/col">
                           <span className="truncate text-[#23251d]">{col}</span>
                           <button
                             onClick={() => handleInsertText(col)}
                             className="text-[9px] font-extrabold text-[#f7a501] opacity-0 group-hover/col:opacity-100 transition-opacity hover:underline cursor-pointer"
                           >
-                            Insertar
+                            {t('Insertar')}
                           </button>
                         </div>
                       ))}
@@ -527,14 +533,14 @@ export default function QueryEditor() {
                 <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
               </div>
               <span className="font-extrabold uppercase text-[10px]">Console.sql</span>
-              <span className="text-[10px] text-[#4d4f46]">Atajo: Ctrl+Enter</span>
+              <span className="text-[10px] text-[#4d4f46]">{t('Atajo: Ctrl+Enter')}</span>
             </div>
             <div className="flex-1 min-h-0">
               <MonacoEditor
                 height="100%"
                 language="sql"
                 theme="vs-dark"
-                value={sqlCode}
+                value={editorValue}
                 onChange={(value) => {
                   setSqlCode(value || '');
                   setActiveQueryId(null);
@@ -563,7 +569,7 @@ export default function QueryEditor() {
                     <Clock className="h-3.5 w-3.5 text-[#f7a501]" /> {queryResult.durationMs} ms
                   </span>
                   <span className="flex items-center gap-1">
-                    <Rows className="h-3.5 w-3.5 text-[#f7a501]" /> {queryResult.rowCount} filas
+                    <Rows className="h-3.5 w-3.5 text-[#f7a501]" /> {queryResult.rowCount} {t('filas')}
                   </span>
                 </div>
               )}
@@ -604,7 +610,7 @@ export default function QueryEditor() {
                         <div className="flex flex-wrap gap-3 text-[11px]" style={{ color: '#4d4f46' }}>
                           {(queryResult as any).appliedPolicy?.rowFilter && (
                             <span>
-                              Filtro de filas:{' '}
+                              {t('Filtro de filas:')}{' '}
                               <code
                                 className="px-1.5 py-0.5 rounded border border-[#23251d]"
                                 style={{ backgroundColor: 'white' }}
@@ -615,9 +621,9 @@ export default function QueryEditor() {
                           )}
                           {(queryResult as any).appliedPolicy?.allowedColumns && (
                             <span>
-                              Columnas visibles:{' '}
+                              {t('Columnas visibles:')}{' '}
                               <strong>{(queryResult as any).appliedPolicy.allowedColumns.length}</strong>{' '}
-                              de las disponibles
+                              {t('de las disponibles')}
                             </span>
                           )}
                         </div>
@@ -687,7 +693,7 @@ export default function QueryEditor() {
                     value={saveDescription}
                     onChange={(e) => setSaveDescription(e.target.value)}
                     className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm h-20 font-mono shadow-[2px_2px_0px_0px_#23251d]"
-                    placeholder="ej. Reporte semanal de crecimiento..."
+                    placeholder={t('ej. Reporte semanal de crecimiento...')}
                   />
                 </div>
 
@@ -716,7 +722,7 @@ export default function QueryEditor() {
                     disabled={isSaving || !saveName}
                     className="btn-retro-primary"
                   >
-                    {isSaving ? <Loader2 className="animate-spin h-4 w-4 text-[#23251d]" /> : 'Guardar Consulta'}
+                    {isSaving ? <Loader2 className="animate-spin h-4 w-4 text-[#23251d]" /> : t('Guardar consulta')}
                   </button>
                 </div>
               </form>
@@ -799,7 +805,7 @@ export default function QueryEditor() {
                       disabled={!selectedDashboardId}
                       className="btn-retro-primary text-xs"
                     >
-                      Continuar
+                      {t('Continuar')}
                     </button>
                   </div>
                 </div>

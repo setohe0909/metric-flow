@@ -12,7 +12,7 @@ interface DashboardPropertiesPanelProps {
   onDelete?: (widget: DashboardWidget) => void;
 }
 
-const inputClass = 'w-full rounded-xl border-2 border-[#23251d] bg-[#eeefe9] px-3 py-2 text-sm text-[#23251d] outline-none transition-all focus:shadow-[3px_3px_0px_0px_#f7a501]';
+const inputClass = 'w-full rounded-xl border-2 border-[var(--color-border-strong)] bg-[var(--color-chart-surface)] px-3 py-2 text-sm text-[var(--color-chart-ink)] outline-none transition-all focus:shadow-[3px_3px_0px_0px_var(--color-accent)]';
 
 export function DashboardPropertiesPanel({
   widget,
@@ -32,12 +32,12 @@ export function DashboardPropertiesPanel({
 
   if (!widget) {
     return (
-      <aside className="rounded-2xl border-2 border-dashed border-[#23251d] bg-[#f4f4f0] p-5 text-center shadow-[4px_4px_0px_0px_#23251d] lg:sticky lg:top-24 lg:self-start">
-        <Settings2 className="mx-auto mb-3 h-6 w-6 text-[#f7a501]" />
-        <h3 className="text-sm font-extrabold text-[#23251d] font-mono">
+      <aside className="rounded-2xl border-2 border-dashed border-[var(--color-border-strong)] bg-[var(--color-widget)] p-5 text-center shadow-[var(--shadow-retro-strong)] lg:sticky lg:top-24 lg:self-start">
+        <Settings2 className="mx-auto mb-3 h-6 w-6 text-[var(--color-accent)]" />
+        <h3 className="text-sm font-extrabold text-[var(--color-ink)] font-mono">
           Propiedades
         </h3>
-        <p className="mt-2 text-xs leading-relaxed text-[#4d4f46]">
+        <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted-text)]">
           Selecciona un widget del canvas para editar su título, contenido o estilo básico.
         </p>
       </aside>
@@ -48,20 +48,20 @@ export function DashboardPropertiesPanel({
   const isImageWidget = widget.type === 'image';
 
   return (
-    <aside className="rounded-2xl border-2 border-[#23251d] bg-[#f4f4f0] p-4 shadow-[4px_4px_0px_0px_#23251d] lg:sticky lg:top-24 lg:self-start">
-      <div className="mb-4 flex items-center gap-2 border-b-2 border-[#23251d] pb-3">
-        <Settings2 className="h-4 w-4 text-[#f7a501]" />
+    <aside className="rounded-2xl border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] p-4 shadow-[var(--shadow-retro-strong)] lg:sticky lg:top-24 lg:self-start">
+      <div className="mb-4 flex items-center gap-2 border-b-2 border-[var(--color-border-soft)] pb-3">
+        <Settings2 className="h-4 w-4 text-[var(--color-accent)]" />
         <div>
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#23251d] font-mono">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--color-ink)] font-mono">
             Propiedades
           </h3>
-          <p className="text-[10px] text-[#4d4f46]">{widget.type}</p>
+          <p className="text-[10px] text-[var(--color-muted-text)]">{widget.type}</p>
         </div>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1.5 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#4d4f46]">
+          <label className="mb-1.5 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted-text)]">
             <Type className="h-3.5 w-3.5" />
             Título
           </label>
@@ -75,7 +75,7 @@ export function DashboardPropertiesPanel({
 
         {isTextWidget && (
           <div>
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[#4d4f46]">
+            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted-text)]">
               Texto / Markdown
             </label>
             <textarea
@@ -90,7 +90,7 @@ export function DashboardPropertiesPanel({
 
         {isImageWidget && (
           <div>
-            <label className="mb-1.5 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#4d4f46]">
+            <label className="mb-1.5 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[var(--color-muted-text)]">
               <Image className="h-3.5 w-3.5" />
               URL de imagen
             </label>
@@ -104,7 +104,7 @@ export function DashboardPropertiesPanel({
         )}
 
         {!isTextWidget && !isImageWidget && (
-          <div className="rounded-xl border-2 border-[#23251d] bg-[#eeefe9] p-3 text-xs leading-relaxed text-[#4d4f46]">
+          <div className="rounded-xl border-2 border-[var(--color-border-strong)] bg-[var(--color-chart-surface)] p-3 text-xs leading-relaxed text-[var(--color-muted-text)]">
             Este widget conserva su configuración avanzada en el creador de widgets.
           </div>
         )}

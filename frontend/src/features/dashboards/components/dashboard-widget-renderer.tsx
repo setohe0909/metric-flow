@@ -13,7 +13,7 @@ export function DashboardWidgetRenderer({ widget, data = [] }: DashboardWidgetRe
     case 'text':
     case 'markdown':
       return (
-        <div className="h-full overflow-auto rounded-xl bg-[#f4f4f0] p-4 text-[#23251d]">
+        <div className="h-full overflow-auto rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-chart-surface)] p-4 text-[var(--color-chart-ink)]">
           <div className="whitespace-pre-wrap text-sm leading-relaxed">
             {visualConfig.markdown || visualConfig.text || widget.title}
           </div>
@@ -23,7 +23,7 @@ export function DashboardWidgetRenderer({ widget, data = [] }: DashboardWidgetRe
     case 'divider':
       return (
         <div className="flex h-full items-center">
-          <div className="h-0.5 w-full bg-[#23251d]" />
+          <div className="h-0.5 w-full bg-[var(--color-border-strong)]" />
         </div>
       );
 
@@ -35,7 +35,7 @@ export function DashboardWidgetRenderer({ widget, data = [] }: DashboardWidgetRe
           className="h-full w-full rounded-xl object-cover"
         />
       ) : (
-        <div className="flex h-full items-center justify-center rounded-xl bg-[#f4f4f0] text-xs font-bold text-[#4d4f46]">
+        <div className="flex h-full items-center justify-center rounded-xl border border-[var(--color-border-soft)] bg-[var(--color-chart-surface)] text-xs font-bold text-[var(--color-chart-ink)]">
           Imagen sin URL
         </div>
       );

@@ -10,7 +10,6 @@ import type { DashboardWidget } from '@/features/dashboards/types/dashboard-stud
 import { getDashboardPages, getInitialPageId, widgetNeedsData } from '@/features/dashboards/utils/dashboard-pages';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { useAuth } from '@/features/auth/hooks/use-auth';
-import { SpotlightCard } from '@/components/spotlight-card';
 import { apiClient } from '@/lib/api-client';
 import {
   LayoutDashboard,
@@ -34,6 +33,59 @@ import {
 import ReactGridLayout, { WidthProvider } from 'react-grid-layout/legacy';
 
 const ReactGridLayoutWithWidth = WidthProvider(ReactGridLayout);
+
+const toWidgetLayout = (widget: DashboardWidget) => ({
+  i: widget.id,
+  x: widget.layoutX ?? 0,
+  y: widget.layoutY ?? 0,
+  w: widget.layoutW ?? 4,
+  h: widget.layoutH ?? 3,
+});
+
+const normalizeLayout = (layout: any[]) =>
+  layout
+    .map((item) => ({
+      i: String(item.i),
+      x: Number(item.x ?? 0),
+      y: Number(item.y ?? 0),
+      w: Number(item.w ?? 4),
+      h: Number(item.h ?? 3),
+    }))
+    .sort((a, b) => a.i.localeCompare(b.i));
+
+const layoutItemsAreEqual = (current: any[], next: any[]) => {
+  const currentLayout = normalizeLayout(current);
+  const nextLayout = normalizeLayout(next);
+  if (currentLayout.length !== nextLayout.length) return false;
+  return currentLayout.every((item, index) => {
+    const nextItem = nextLayout[index];
+    return (
+      nextItem &&
+      item.i === nextItem.i &&
+      item.x === nextItem.x &&
+      item.y === nextItem.y &&
+      item.w === nextItem.w &&
+      item.h === nextItem.h
+    );
+  });
+};
+
+const mergeWidgetLayouts = (current: any[], widgets: DashboardWidget[]) => {
+  const currentById = new Map(normalizeLayout(current).map((item) => [item.i, item]));
+  return widgets.map((widget) => {
+    const currentItem = currentById.get(widget.id);
+    const widgetLayout = toWidgetLayout(widget);
+
+    // react-grid-layout briefly creates a 1x1 fallback for a child that appears
+    // before our local layout catches up. Do not preserve that fallback because
+    // it renders as a tiny jumping widget at the bottom of the Studio canvas.
+    if (!currentItem || (currentItem.w <= 1 && currentItem.h <= 1)) {
+      return widgetLayout;
+    }
+
+    return currentItem;
+  });
+};
 
 export default function DashboardDetail() {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +132,10 @@ export default function DashboardDetail() {
     () => activePage?.widgets ?? [],
     [activePage],
   );
+  const localLayoutById = useMemo(
+    () => new Map(localLayouts.map((item) => [String(item.i), item])),
+    [localLayouts],
+  );
   const selectedWidget = activeWidgets.find((widget) => widget.id === selectedWidgetId);
   const activePageQuery = activePage && activePage.id !== 'legacy-default-page'
     ? `?pageId=${activePage.id}`
@@ -99,32 +155,27 @@ export default function DashboardDetail() {
 
   // Initialize layouts from active dashboard page widgets
   useEffect(() => {
-    if (activeWidgets) {
-      setLocalLayouts(
-        activeWidgets.map((w: any) => ({
-          i: w.id,
-          x: w.layoutX,
-          y: w.layoutY,
-          w: w.layoutW,
-          h: w.layoutH,
-        }))
-      );
-    }
-  }, [activeWidgets]);
+    setLocalLayouts((current) => {
+      const next = isEditingLayout
+        ? mergeWidgetLayouts(current, activeWidgets)
+        : activeWidgets.map(toWidgetLayout);
+      return layoutItemsAreEqual(current, next) ? current : next;
+    });
+  }, [activeWidgets, isEditingLayout]);
 
   if (isLoadingDashboard) {
     return (
       <div className="py-20 flex justify-center items-center">
-        <Loader2 className="animate-spin h-8 w-8 text-[#f7a501]" />
+        <Loader2 className="animate-spin h-8 w-8 text-[var(--color-accent)]" />
       </div>
     );
   }
 
   if (dashboardError || !dashboard) {
     return (
-      <div className="p-6 bg-red-100 border-2 border-[#23251d] rounded-2xl text-red-750 flex flex-col items-center justify-center gap-2 max-w-md mx-auto mt-10 shadow-[4px_4px_0px_0px_#23251d]">
+      <div className="p-6 bg-red-100 border-2 border-[var(--color-border-strong)] rounded-2xl text-red-750 flex flex-col items-center justify-center gap-2 max-w-md mx-auto mt-10 shadow-[var(--shadow-retro-strong)]">
         <AlertTriangle className="h-6 w-6 text-red-650" />
-        <h3 className="font-extrabold font-mono text-[#23251d]">Error al cargar el dashboard</h3>
+        <h3 className="font-extrabold font-mono text-[var(--color-ink)]">Error al cargar el dashboard</h3>
         <p className="text-xs text-red-800">Asegúrate de tener acceso o que el dashboard exista.</p>
         <button
           onClick={() => navigate('/dashboards')}
@@ -181,6 +232,7 @@ export default function DashboardDetail() {
       visualConfig: Record<string, any>;
     }>;
     const config = defaults[type];
+    const layoutY = Math.max(0, ...activeWidgets.map((widget) => widget.layoutY + widget.layoutH));
     const created = await createWidget({
       dashboardId: dashboard.id,
       pageId,
@@ -190,9 +242,22 @@ export default function DashboardDetail() {
       configVersion: 2,
       visualConfig: config.visualConfig,
       layoutX: 0,
-      layoutY: Math.max(0, ...activeWidgets.map((widget) => widget.layoutY + widget.layoutH)),
+      layoutY,
       layoutW: config.layoutW,
       layoutH: config.layoutH,
+    });
+    setLocalLayouts((current) => {
+      const next = [
+        ...current,
+        {
+          i: created.id,
+          x: 0,
+          y: layoutY,
+          w: config.layoutW,
+          h: config.layoutH,
+        },
+      ];
+      return layoutItemsAreEqual(current, next) ? current : next;
     });
     setSelectedWidgetId(created.id);
     setIsEditingLayout(true);
@@ -237,13 +302,7 @@ export default function DashboardDetail() {
   const handleCancelLayout = () => {
     if (activeWidgets) {
       setLocalLayouts(
-        activeWidgets.map((w: any) => ({
-          i: w.id,
-          x: w.layoutX,
-          y: w.layoutY,
-          w: w.layoutW,
-          h: w.layoutH,
-        }))
+        activeWidgets.map(toWidgetLayout)
       );
     }
     setIsEditingLayout(false);
@@ -283,37 +342,38 @@ export default function DashboardDetail() {
     setTimeout(() => setCopiedEmbed(false), 2000);
   };
 
-  const handleLayoutChange = (newLayout: any) => {
-    if (isEditingLayout) {
-      setLocalLayouts(newLayout);
-    }
+  const handleLayoutInteraction = (nextLayout: any) => {
+    if (!isEditingLayout) return;
+    setLocalLayouts((current) => (
+      layoutItemsAreEqual(current, nextLayout) ? current : nextLayout
+    ));
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b-2 border-[#23251d] pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b-2 border-[var(--color-border-soft)] pb-6">
         <div className="space-y-1">
           <Link
             to="/dashboards"
-            className="inline-flex items-center gap-1.5 text-xs text-[#4d4f46] hover:text-[#23251d] transition-colors mb-2 font-mono"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--color-subtle-text)] hover:text-[var(--color-ink)] transition-colors mb-2 font-mono"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Volver a Dashboards
           </Link>
-          <h1 className="text-2xl font-extrabold text-[#23251d] flex items-center gap-2.5 font-mono">
-            <LayoutDashboard className="h-6 w-6 text-[#f7a501]" /> {dashboard.name}
+          <h1 className="text-2xl font-extrabold text-[var(--color-ink)] flex items-center gap-2.5 font-mono">
+            <LayoutDashboard className="h-6 w-6 text-[var(--color-accent)]" /> {dashboard.name}
             <span
-              className={`text-[10px] uppercase px-2 py-1 rounded border-2 border-[#23251d] ${
+              className={`text-[10px] uppercase px-2 py-1 rounded border-2 border-[var(--color-border-strong)] ${
                 dashboard.publishedAt
-                  ? 'bg-green-200 text-green-900'
-                  : 'bg-[#e4e5de] text-[#4d4f46]'
+                  ? 'bg-green-200 text-green-950'
+                  : 'bg-[var(--color-muted-surface)] text-[var(--color-muted-text)]'
               }`}
             >
               {dashboard.publishedAt ? 'Publicado' : 'Borrador'}
             </span>
           </h1>
           {dashboard.description && (
-            <p className="text-xs text-[#4d4f46] max-w-2xl font-mono">{dashboard.description}</p>
+            <p className="text-xs text-[var(--color-muted-text)] max-w-2xl font-mono">{dashboard.description}</p>
           )}
         </div>
 
@@ -329,9 +389,9 @@ export default function DashboardDetail() {
                     className="btn-retro-primary text-xs"
                   >
                     {isUpdatingLayout ? (
-                      <Loader2 className="animate-spin h-3.5 w-3.5 text-[#23251d]" />
+                      <Loader2 className="animate-spin h-3.5 w-3.5 text-[var(--color-on-accent)]" />
                     ) : (
-                      <Save className="h-3.5 w-3.5 text-[#23251d]" />
+                      <Save className="h-3.5 w-3.5 text-[var(--color-on-accent)]" />
                     )}
                     Guardar Diseño
                   </button>
@@ -372,7 +432,7 @@ export default function DashboardDetail() {
               <button
                 onClick={() => setShowSharePanel(!showSharePanel)}
                 className={`btn-retro-secondary ${
-                  dashboard.isPublic ? 'border-[#f7a501] text-[#f7a501]' : ''
+                  dashboard.isPublic ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : ''
                 }`}
               >
                 <Share2 className="h-4 w-4" />
@@ -383,7 +443,7 @@ export default function DashboardDetail() {
                 to={`/dashboards/${dashboard.id}/widgets/new${activePageQuery}`}
                 className="btn-retro-primary"
               >
-                <Plus className="h-4 w-4 text-[#23251d]" /> Agregar Widget
+                <Plus className="h-4 w-4 text-[var(--color-on-accent)]" /> Agregar Widget
               </Link>
             </>
           )}
@@ -392,28 +452,28 @@ export default function DashboardDetail() {
 
       {/* Share Panel */}
       {showSharePanel && (
-        <div className="bg-[#eeefe9] border-2 border-[#23251d] rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 shadow-[4px_4px_0px_0px_#23251d]">
+        <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border-strong)] rounded-2xl p-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200 shadow-[var(--shadow-retro-strong)]">
           {/* Header row: title + toggle */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
-              <h3 className="text-sm font-extrabold text-[#23251d] font-mono">Compartir Dashboard Públicamente</h3>
-              <p className="text-xs text-[#4d4f46] leading-relaxed font-mono">
+              <h3 className="text-sm font-extrabold text-[var(--color-ink)] font-mono">Compartir Dashboard Públicamente</h3>
+              <p className="text-xs text-[var(--color-muted-text)] leading-relaxed font-mono">
                 Permite que cualquier persona acceda a este dashboard a través de un enlace de solo lectura y marca blanca.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-[#4d4f46] font-extrabold font-mono">
+              <span className="text-xs text-[var(--color-muted-text)] font-extrabold font-mono">
                 {dashboard.isPublic ? 'Compartido' : 'Privado'}
               </span>
               <button
                 onClick={handleToggleShare}
                 disabled={isTogglingShare}
                 className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  dashboard.isPublic ? 'bg-[#f7a501]' : 'bg-slate-350'
+                  dashboard.isPublic ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-muted-surface)]'
                 }`}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-[var(--color-widget)] shadow ring-0 transition duration-200 ease-in-out ${
                     dashboard.isPublic ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
@@ -422,13 +482,13 @@ export default function DashboardDetail() {
           </div>
 
           {dashboard.isPublic && dashboard.shareToken && (
-            <div className="space-y-3 pt-3 border-t-2 border-[#23251d]/10">
+            <div className="space-y-3 pt-3 border-t-2 border-[color-mix(in_srgb,var(--color-border-strong)_12%,transparent)]">
               {/* Tab selector: Link vs Embed */}
-              <div className="flex border-2 border-[#23251d] rounded-xl overflow-hidden shadow-[2px_2px_0px_0px_#23251d] w-fit font-mono text-xs font-bold">
+              <div className="flex border-2 border-[var(--color-border-strong)] rounded-xl overflow-hidden shadow-[var(--shadow-retro-soft)] w-fit font-mono text-xs font-bold">
                 <button
                   onClick={() => setShareTab('link')}
-                  className={`flex items-center gap-1.5 px-4 py-2 border-r-2 border-[#23251d] transition-colors ${
-                    shareTab === 'link' ? 'bg-[#f7a501] text-[#23251d]' : 'bg-white text-[#4d4f46] hover:bg-[#f4f4f0]'
+                  className={`flex items-center gap-1.5 px-4 py-2 border-r-2 border-[var(--color-border-strong)] transition-colors ${
+                    shareTab === 'link' ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]' : 'bg-[var(--color-widget)] text-[var(--color-muted-text)] hover:bg-[var(--color-muted-surface)]'
                   }`}
                 >
                   <LinkIcon className="h-3.5 w-3.5" /> Enlace
@@ -436,7 +496,7 @@ export default function DashboardDetail() {
                 <button
                   onClick={() => setShareTab('embed')}
                   className={`flex items-center gap-1.5 px-4 py-2 transition-colors ${
-                    shareTab === 'embed' ? 'bg-[#f7a501] text-[#23251d]' : 'bg-white text-[#4d4f46] hover:bg-[#f4f4f0]'
+                    shareTab === 'embed' ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]' : 'bg-[var(--color-widget)] text-[var(--color-muted-text)] hover:bg-[var(--color-muted-surface)]'
                   }`}
                 >
                   <Code2 className="h-3.5 w-3.5" /> Embed
@@ -445,7 +505,7 @@ export default function DashboardDetail() {
 
               {shareTab === 'link' && (
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-[#4d4f46] uppercase tracking-wider font-mono">
+                  <label className="text-[11px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider font-mono">
                     Enlace Público Compartido
                   </label>
                   <div className="flex gap-2">
@@ -453,13 +513,13 @@ export default function DashboardDetail() {
                       type="text"
                       readOnly
                       value={`${window.location.origin}/shared/dashboard/${dashboard.shareToken}`}
-                      className="flex-1 bg-white border-2 border-[#23251d] rounded-xl px-3 py-2 text-xs text-[#23251d] focus:outline-none focus:border-[#f7a501] transition-all font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="flex-1 bg-[var(--color-widget)] border-2 border-[var(--color-border-strong)] rounded-xl px-3 py-2 text-xs text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-accent)] transition-all font-mono shadow-[var(--shadow-retro-soft)]"
                     />
                     <button onClick={handleCopyLink} className="btn-retro-secondary text-xs">
                       {copied ? (
                         <><Check className="h-3.5 w-3.5 text-green-600" /> Copiado</>
                       ) : (
-                        <><Copy className="h-3.5 w-3.5 text-[#23251d]" /> Copiar Enlace</>
+                        <><Copy className="h-3.5 w-3.5 text-[var(--color-ink)]" /> Copiar Enlace</>
                       )}
                     </button>
                   </div>
@@ -468,29 +528,29 @@ export default function DashboardDetail() {
 
               {shareTab === 'embed' && (
                 <div className="space-y-3">
-                  <label className="text-[11px] font-bold text-[#4d4f46] uppercase tracking-wider font-mono">
+                  <label className="text-[11px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider font-mono">
                     Código de Integración (iframe)
                   </label>
 
                   {/* Dimensiones */}
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <label className="block text-[10px] font-bold font-mono text-[#4d4f46] mb-1">Ancho</label>
+                      <label className="block text-[10px] font-bold font-mono text-[var(--color-muted-text)] mb-1">Ancho</label>
                       <input
                         type="text"
                         value={iframeWidth}
                         onChange={(e) => setIframeWidth(e.target.value)}
-                        className="w-full px-3 py-1.5 border-2 border-[#23251d] rounded-lg bg-white text-xs font-mono text-[#23251d] focus:outline-none shadow-[1px_1px_0px_0px_#23251d]"
+                        className="w-full px-3 py-1.5 border-2 border-[var(--color-border-strong)] rounded-lg bg-[var(--color-widget)] text-xs font-mono text-[var(--color-ink)] focus:outline-none shadow-[1px_1px_0px_0px_var(--color-border-strong)]"
                         placeholder="100% o 800px"
                       />
                     </div>
                     <div className="w-28">
-                      <label className="block text-[10px] font-bold font-mono text-[#4d4f46] mb-1">Alto (px)</label>
+                      <label className="block text-[10px] font-bold font-mono text-[var(--color-muted-text)] mb-1">Alto (px)</label>
                       <input
                         type="text"
                         value={iframeHeight}
                         onChange={(e) => setIframeHeight(e.target.value)}
-                        className="w-full px-3 py-1.5 border-2 border-[#23251d] rounded-lg bg-white text-xs font-mono text-[#23251d] focus:outline-none shadow-[1px_1px_0px_0px_#23251d]"
+                        className="w-full px-3 py-1.5 border-2 border-[var(--color-border-strong)] rounded-lg bg-[var(--color-widget)] text-xs font-mono text-[var(--color-ink)] focus:outline-none shadow-[1px_1px_0px_0px_var(--color-border-strong)]"
                         placeholder="600"
                       />
                     </div>
@@ -498,8 +558,8 @@ export default function DashboardDetail() {
 
                   {/* Snippet preview */}
                   <div
-                    className="border-2 border-[#23251d] rounded-xl overflow-hidden"
-                    style={{ boxShadow: '2px 2px 0px 0px #23251d' }}
+                    className="border-2 border-[var(--color-border-strong)] rounded-xl overflow-hidden"
+                    style={{ boxShadow: 'var(--shadow-retro-soft)' }}
                   >
                     {/* Fake code editor titlebar */}
                     <div className="bg-[#23251d] px-4 py-2 flex items-center gap-2">
@@ -509,7 +569,7 @@ export default function DashboardDetail() {
                       <span className="text-[10px] font-mono text-slate-400 ml-2">embed.html</span>
                     </div>
                     <pre
-                      className="bg-[#1e1f1a] text-[#e8e9e3] text-[11px] font-mono p-4 overflow-x-auto leading-relaxed whitespace-pre"
+                      className="bg-[var(--color-canvas)] text-[var(--color-ink)] text-[11px] font-mono p-4 overflow-x-auto leading-relaxed whitespace-pre"
                     >{`<iframe
   src="${window.location.origin}/shared/dashboard/${dashboard.shareToken}"
   width="${iframeWidth}"
@@ -521,9 +581,9 @@ export default function DashboardDetail() {
 
                   <button onClick={handleCopyEmbed} className="btn-retro-primary text-xs">
                     {copiedEmbed ? (
-                      <><Check className="h-3.5 w-3.5 text-[#23251d]" /> Copiado!</>
+                      <><Check className="h-3.5 w-3.5 text-[var(--color-on-accent)]" /> Copiado!</>
                     ) : (
-                      <><Copy className="h-3.5 w-3.5 text-[#23251d]" /> Copiar código embed</>
+                      <><Copy className="h-3.5 w-3.5 text-[var(--color-on-accent)]" /> Copiar código embed</>
                     )}
                   </button>
                 </div>
@@ -559,12 +619,12 @@ export default function DashboardDetail() {
 
         {/* Widgets Canvas */}
         {activeWidgets.length === 0 ? (
-          <div className="border-2 border-dashed border-[#23251d] rounded-2xl p-16 flex flex-col items-center justify-center text-center bg-white shadow-[4px_4px_0px_0px_#23251d]">
-            <div className="p-4 bg-[#f4f4f0] border-2 border-[#23251d] rounded-2xl text-slate-500 mb-4">
-              <LayoutDashboard className="h-8 w-8 text-[#f7a501]" />
+          <div className="border-2 border-dashed border-[var(--color-border-strong)] rounded-2xl p-16 flex flex-col items-center justify-center text-center bg-[var(--color-widget)] shadow-[var(--shadow-retro-strong)]">
+            <div className="p-4 bg-[var(--color-muted-surface)] border-2 border-[var(--color-border-strong)] rounded-2xl text-slate-500 mb-4">
+              <LayoutDashboard className="h-8 w-8 text-[var(--color-accent)]" />
             </div>
-            <h3 className="text-base font-extrabold text-[#23251d] font-mono">Esta sección está vacía</h3>
-            <p className="text-xs text-[#4d4f46] max-w-xs mt-1 mb-6 leading-relaxed font-mono">
+            <h3 className="text-base font-extrabold text-[var(--color-ink)] font-mono">Esta sección está vacía</h3>
+            <p className="text-xs text-[var(--color-muted-text)] max-w-xs mt-1 mb-6 leading-relaxed font-mono">
               Agrega widgets visuales o narrativos para construir esta sección del dashboard.
             </p>
             {!isViewer && (
@@ -572,12 +632,12 @@ export default function DashboardDetail() {
                 to={`/dashboards/${dashboard.id}/widgets/new${activePageQuery}`}
                 className="btn-retro-primary"
               >
-                <Plus className="h-4 w-4 text-[#23251d]" /> Agregar primer widget
+                <Plus className="h-4 w-4 text-[var(--color-on-accent)]" /> Agregar primer widget
               </Link>
             )}
           </div>
         ) : (
-          <div className={isEditingLayout ? 'dashboard-studio-canvas relative rounded-3xl border-2 border-dashed border-[#23251d]/30 bg-white/35 p-3' : 'relative'}>
+          <div className={isEditingLayout ? 'dashboard-studio-canvas relative rounded-3xl border-2 border-dashed border-[color-mix(in_srgb,var(--color-border-strong)_30%,transparent)] bg-[color-mix(in_srgb,var(--color-widget)_45%,transparent)] p-3' : 'relative'}>
             <ReactGridLayoutWithWidth
               className="layout"
               layout={localLayouts}
@@ -585,41 +645,49 @@ export default function DashboardDetail() {
               rowHeight={80}
               isDraggable={isEditingLayout}
               isResizable={isEditingLayout}
-              resizeHandles={['se', 'e', 's']}
+              resizeHandles={['se']}
+              compactType={isEditingLayout ? null : 'vertical'}
+              isBounded={isEditingLayout}
+              useCSSTransforms={!isEditingLayout}
               draggableHandle=".drag-handle"
-              onLayoutChange={handleLayoutChange}
+              draggableCancel=".react-resizable-handle, input, textarea, button, a"
+              onDragStop={handleLayoutInteraction}
+              onResizeStop={handleLayoutInteraction}
               margin={isEditingLayout ? [16, 16] : [20, 20]}
             >
               {activeWidgets.map((widget) => (
-                <SpotlightCard
+                <div
                   key={widget.id}
+                  data-grid={localLayoutById.get(widget.id) ?? toWidgetLayout(widget)}
                   onClick={() => {
                     if (isEditingLayout && !isViewer) {
                       setSelectedWidgetId(widget.id);
                     }
                   }}
-                  className={`hover:border-[#f7a501] !p-0 ${isEditingLayout ? 'overflow-visible' : ''} ${
+                  className={`group flex h-full flex-col rounded-2xl border-2 bg-[var(--color-widget)] text-[var(--color-ink)] shadow-[var(--shadow-retro-strong)] ${
+                    isEditingLayout ? 'overflow-visible' : 'overflow-hidden'
+                  } ${
                     selectedWidgetId === widget.id
-                      ? 'border-[#f7a501] ring-4 ring-[#f7a501]/25'
+                      ? 'border-[var(--color-accent)] ring-4 ring-[color-mix(in_srgb,var(--color-accent)_28%,transparent)]'
                       : isEditingLayout
-                        ? 'border-dashed border-[#f7a501] bg-[#f7a501]/5'
-                        : 'border-[#23251d]'
+                        ? 'border-dashed border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]'
+                        : 'border-[var(--color-border-strong)]'
                   }`}
                 >
                   {/* Retro OS Header Bar */}
-                  <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3 drag-handle cursor-grab active:cursor-grabbing">
+                  <div className="bg-[var(--color-widget-header)] border-b-2 border-[var(--color-border-soft)] px-4 py-2.5 flex items-center justify-between gap-3 drag-handle cursor-grab active:cursor-grabbing">
                     <div className="flex gap-1.5 shrink-0">
                       <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
                       <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
                       <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
                     </div>
-                    <span className="text-xs font-extrabold text-[#23251d] truncate font-mono flex-1 text-center select-none">
+                    <span className="text-xs font-extrabold text-[var(--color-ink)] truncate font-mono flex-1 text-center select-none">
                       {widget.title}.json
                     </span>
                     {!isViewer && !isEditingLayout && (
                       <button
                         onClick={() => handleDeleteWidget(widget.id, widget.title)}
-                        className="text-[#4d4f46] hover:text-red-500 hover:bg-red-500/10 p-1 rounded transition-all"
+                        className="text-[var(--color-muted-text)] hover:text-red-500 hover:bg-red-500/10 p-1 rounded transition-all"
                         title="Eliminar widget"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -628,7 +696,7 @@ export default function DashboardDetail() {
                   </div>
 
                   {/* Chart container */}
-                  <div className="flex-1 min-h-0 p-5 bg-white">
+                  <div className="flex-1 min-h-0 p-5 bg-[var(--color-chart-surface)] text-[var(--color-chart-ink)]">
                     <ErrorBoundary>
                       <WidgetContainer
                         dashboardId={dashboard.id}
@@ -636,7 +704,7 @@ export default function DashboardDetail() {
                       />
                     </ErrorBoundary>
                   </div>
-                </SpotlightCard>
+                </div>
               ))}
             </ReactGridLayoutWithWidth>
           </div>
@@ -706,20 +774,20 @@ function WidgetContainer({
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center text-[#4d4f46] py-6">
-        <Loader2 className="animate-spin h-5 w-5 text-[#f7a501]" />
+      <div className="h-full flex items-center justify-center text-[var(--color-muted-text)] py-6">
+        <Loader2 className="animate-spin h-5 w-5 text-[var(--color-accent)]" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-center p-3 space-y-1 text-[#4d4f46] text-xs font-mono">
+      <div className="h-full flex flex-col items-center justify-center text-center p-3 space-y-1 text-[var(--color-muted-text)] text-xs font-mono">
         <Clock className="h-5 w-5 text-red-500 mb-1" />
         <span className="text-[10px] text-red-650 font-bold truncate max-w-full">
           Fallo al cargar datos
         </span>
-        <p className="text-[9px] text-[#4d4f46] line-clamp-2">{error}</p>
+        <p className="text-[9px] text-[var(--color-muted-text)] line-clamp-2">{error}</p>
       </div>
     );
   }
