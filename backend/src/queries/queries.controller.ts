@@ -1,4 +1,5 @@
 import {
+  Res,
   Controller,
   Post,
   Get,
@@ -10,16 +11,22 @@ import {
   HttpCode,
   HttpStatus,
   ForbiddenException,
+  StreamableFile,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { QueriesService } from './queries.service';
-import { RunQueryDto, SaveQueryDto } from './dto/queries.dto';
+import { ExportQueryDto, RunQueryDto, SaveQueryDto } from './dto/queries.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TenantGuard } from '../auth/guards/tenant.guard';
+import { QueryExportService } from './query-export.service';
 
 @UseGuards(JwtAuthGuard, TenantGuard)
 @Controller('queries')
 export class QueriesController {
-  constructor(private readonly queriesService: QueriesService) {}
+  constructor(
+    private readonly queriesService: QueriesService,
+    private readonly queryExportService: QueryExportService,
+  ) {}
 
   @Post('run')
   @HttpCode(HttpStatus.OK)
@@ -43,6 +50,33 @@ export class QueriesController {
       req.user.id,
       executionId,
     );
+  }
+
+  @Post('export')
+  @HttpCode(HttpStatus.OK)
+  async exportQuery(
+    @Request() req,
+    @Body() dto: ExportQueryDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.queryExportService.export(
+      req.orgId,
+      req.user.id,
+      req.userRole,
+      {
+        datasourceId: dto.datasourceId,
+        querySql: dto.querySql,
+      },
+      dto.format,
+    );
+
+    response.setHeader('Content-Type', file.contentType);
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${file.filename}"`,
+    );
+
+    return new StreamableFile(file.body);
   }
 
   // --- CRUD Rutas (Sprint 3) ---

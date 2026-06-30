@@ -38,3 +38,9 @@ export class SaveQueryDto {
   @IsNotEmpty({ message: 'El código SQL es obligatorio' })
   querySql: string;
 }
+
+export class ExportQueryDto extends RunQueryDto {
+  @IsString()
+  @IsNotEmpty({ message: 'El formato de exportación es obligatorio' })
+  format: 'csv' | 'excel';
+}

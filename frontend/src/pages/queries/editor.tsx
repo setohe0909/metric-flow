@@ -7,7 +7,7 @@ import { useDashboards } from '@/features/dashboards/hooks/use-dashboards';
 import type { QueryRunResponse } from '@/features/queries/hooks/use-queries';
 import { ResultsTable } from '@/features/queries/components/results-table';
 import { apiClient } from '@/lib/api-client';
-import { Play, Save, Loader2, AlertTriangle, CheckCircle, Database, Terminal, Clock, Rows, Trash2, Sliders, X, FileText, EyeOff } from 'lucide-react';
+import { Play, Save, Loader2, AlertTriangle, CheckCircle, Database, Terminal, Clock, Rows, Trash2, Sliders, X, FileText, EyeOff, Download } from 'lucide-react';
 import { ScheduleModal } from '@/features/queries/components/schedule-modal';
 import { useI18n } from '@/lib/i18n';
 
@@ -24,6 +24,8 @@ export default function QueryEditor() {
     isRunning,
     cancelQuery,
     isCancelling,
+    exportQuery,
+    isExporting,
     saveQuery,
     isSaving,
     savedQueries,
@@ -43,6 +45,7 @@ export default function QueryEditor() {
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [pendingExecutionId, setPendingExecutionId] = useState<string | null>(null);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
+  const [lastExecutedSql, setLastExecutedSql] = useState<string>('');
 
   // Estados de Guardado
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -145,6 +148,7 @@ export default function QueryEditor() {
         executionId,
       });
       setQueryResult(res);
+      setLastExecutedSql(querySql);
     } catch (err: any) {
       setExecutionError(
         err.response?.data?.message || t('Error al ejecutar la consulta SQL. Revisa tu sintaxis.')
@@ -152,6 +156,36 @@ export default function QueryEditor() {
     } finally {
       setPendingExecutionId(null);
       setCancelMessage(null);
+    }
+  };
+
+  const triggerBlobDownload = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async (format: 'csv' | 'excel') => {
+    if (!selectedDsId || !lastExecutedSql || !queryResult) {
+      return;
+    }
+
+    try {
+      const file = await exportQuery({
+        datasourceId: selectedDsId,
+        querySql: lastExecutedSql,
+        format,
+      });
+      triggerBlobDownload(file.blob, file.filename);
+    } catch (err: any) {
+      setExecutionError(
+        err.response?.data?.message || t('No fue posible exportar el resultado actual.'),
+      );
     }
   };
 
@@ -373,6 +407,34 @@ export default function QueryEditor() {
                 )}
                 {isCancelling ? t('Cancelando...') : t('Cancelar')}
               </button>
+            ) : null}
+            {queryResult && !isRunning ? (
+              <>
+                <button
+                  onClick={() => handleExport('csv')}
+                  disabled={isExporting}
+                  className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
+                >
+                  {isExporting ? (
+                    <Loader2 className="animate-spin h-3.5 w-3.5" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  {t('Exportar CSV')}
+                </button>
+                <button
+                  onClick={() => handleExport('excel')}
+                  disabled={isExporting}
+                  className="flex items-center gap-1.5 btn-retro-secondary font-mono text-xs disabled:opacity-50"
+                >
+                  {isExporting ? (
+                    <Loader2 className="animate-spin h-3.5 w-3.5" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5" />
+                  )}
+                  {t('Exportar Excel')}
+                </button>
+              </>
             ) : null}
           </div>
           {isRunning && cancelMessage ? (
