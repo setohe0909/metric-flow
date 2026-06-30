@@ -18,6 +18,8 @@ export interface QueryRunResponse {
   executionId: string;
 }
 
+export type QueryExportFormat = 'csv' | 'excel';
+
 export function useQueries() {
   const queryClient = useQueryClient();
 
@@ -48,6 +50,28 @@ export function useQueries() {
         `/queries/cancel/${executionId}`,
       );
       return data;
+    },
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: async (payload: {
+      datasourceId: string;
+      querySql: string;
+      format: QueryExportFormat;
+    }) => {
+      const response = await apiClient.post('/queries/export', payload, {
+        responseType: 'blob',
+      });
+
+      const contentDisposition = response.headers['content-disposition'] as
+        | string
+        | undefined;
+      const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/i);
+
+      return {
+        blob: response.data as Blob,
+        filename: filenameMatch?.[1] || `query-result.${payload.format === 'csv' ? 'csv' : 'xls'}`,
+      };
     },
   });
 
@@ -82,6 +106,8 @@ export function useQueries() {
     runError: runMutation.error,
     cancelQuery: cancelMutation.mutateAsync,
     isCancelling: cancelMutation.isPending,
+    exportQuery: exportMutation.mutateAsync,
+    isExporting: exportMutation.isPending,
     saveQuery: saveMutation.mutateAsync,
     isSaving: saveMutation.isPending,
     deleteQuery: deleteMutation.mutate,
