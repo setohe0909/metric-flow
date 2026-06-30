@@ -1,3 +1,9 @@
+# AI Tools
+.superpowers/
+.alt/
+.agents/
+.cursor/
+
 # Dependencies
 node_modules/
 .pnp
@@ -54,3 +60,6 @@ reports/pre-release/
 
 # SDD metadata
 .atl/
+
+# playwright
+output/
