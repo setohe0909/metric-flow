@@ -94,6 +94,50 @@ cd backend
 npm run test:e2e
 ```
 
+## Tutorial 7: Configurar políticas de datasource
+
+Úsalo cuando distintos roles deban ver distintas filas o columnas.
+
+1. Inicia sesión como administrador.
+2. Abre **Datasources** o **Fuentes de datos** y selecciona la fuente.
+3. Abre el editor de políticas de acceso.
+4. Configura políticas para `READER` y/o `EDITOR`.
+5. Usa `allowedColumns` para restringir columnas visibles.
+6. Usa `rowFilter` para restringir filas, por ejemplo `region = 'LATAM'`.
+7. Guarda la política y verifica el resultado con un usuario de menor privilegio.
+
+Checklist de políticas:
+
+- Empieza con la restricción mínima útil.
+- Prueba dashboards y consultas guardadas representativas.
+- No uses filtros de fila como reemplazo de permisos mínimos en la base de datos.
+
+## Tutorial 8: Programar un reporte de consulta
+
+1. Guarda una consulta con un nombre claro.
+2. Abre **Programar envío** desde el editor SQL.
+3. Agrega uno o más destinatarios de email.
+4. Elige frecuencia o define una expresión cron personalizada.
+5. Elige `csv`, `html` o `json`.
+6. Guarda la programación.
+7. Revisa el historial después de la ejecución.
+
+Si SMTP no está configurado, MetricFlow registra el contenido del reporte en la consola del backend en vez de enviar email.
+
+## Tutorial 9: Revisar auditoría y señales de hardening
+
+1. Inicia sesión como administrador o editor.
+2. Usa auditoría para revisar publicación de dashboards, vistas públicas y cambios de schedules.
+3. Investiga ejecuciones fallidas con estado, mensaje de error e historial de programación.
+4. Revoca sharing público cuando un link ya no deba estar accesible.
+
+Checklist de seguridad:
+
+- Los links públicos de dashboard son intencionales y vigentes.
+- Las políticas de datasource coinciden con los roles.
+- Los destinatarios programados siguen siendo válidos.
+- Los secretos viven solo en variables de entorno o settings cifrados de datasource.
+
 ## Siguiente paso
 
-Lee la guía para [contribuir](./contribuir.md) antes de abrir un issue o pull request.
+Lee el [catálogo de funcionalidades](./funcionalidades.md), la [configuración](./configuracion.md) y la guía de [seguridad y hardening](./seguridad-hardening.md) antes de abrir un issue o pull request.

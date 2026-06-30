@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import OrgSwitcher from './org-switcher';
-import { Database, LayoutDashboard, Terminal, Settings, LogOut, User } from 'lucide-react';
+import { BookOpen, Database, LayoutDashboard, Terminal, Settings, LogOut, User } from 'lucide-react';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
@@ -10,6 +10,7 @@ export default function Sidebar() {
     { name: 'Dashboards', href: '/dashboards', icon: LayoutDashboard },
     { name: 'SQL Editor', href: '/queries', icon: Terminal },
     { name: 'Conectores', href: '/datasources', icon: Database },
+    { name: 'Docs', href: '/docs', icon: BookOpen },
     { name: 'Ajustes', href: '/settings', icon: Settings },
   ];
 

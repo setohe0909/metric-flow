@@ -6,8 +6,8 @@ MetricFlow documentation lives in this `/docs` directory so it can be published 
 
 | Language | Start here | Tutorials |
 |---|---|---|
-| English | [Documentation home](./en/) | [Tutorials](./en/tutorials.md) · [Publishing](./en/publishing.md) |
-| Español | [Inicio de documentación](./es/) | [Tutoriales](./es/tutoriales.md) · [Publicación](./es/publicacion.md) |
+| English | [Documentation home](./en/) | [Feature catalog](./en/features.md) · [Configuration](./en/configuration.md) · [Security](./en/security-hardening.md) |
+| Español | [Inicio de documentación](./es/) | [Funcionalidades](./es/funcionalidades.md) · [Configuración](./es/configuracion.md) · [Seguridad](./es/seguridad-hardening.md) |
 
 ## Recommended GitHub Pages setup
 

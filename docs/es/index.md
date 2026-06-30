@@ -15,6 +15,9 @@ MetricFlow es una plataforma open source y self-hosted para analítica SQL y das
 | Página | Úsala cuando quieras |
 |---|---|
 | [Primeros pasos](./primeros-pasos.md) | Ejecutar el proyecto localmente desde un clon limpio. |
+| [Catálogo de funcionalidades](./funcionalidades.md) | Ver capacidades implementadas y brechas actuales de roadmap. |
+| [Configuración](./configuracion.md) | Configurar secretos backend, SMTP, datasources, preferencias frontend y checks de release. |
+| [Seguridad y hardening](./seguridad-hardening.md) | Entender Stage 5 hardening, roles, SQL de solo lectura, auditoría y sharing público. |
 | [Tutoriales](./tutoriales.md) | Aprender el producto con guías paso a paso. |
 | [Contribuir](./contribuir.md) | Preparar una contribución o reporte de bug. |
 | [Publicación](./publicacion.md) | Publicar `/docs` como sitio público de GitHub Pages. |
@@ -25,8 +28,8 @@ MetricFlow es una plataforma open source y self-hosted para analítica SQL y das
 - Un espacio de trabajo self-hosted por instalación.
 - Autenticación JWT con acceso basado en roles.
 - Credenciales de fuentes de datos cifradas.
-- Editor SQL, consultas guardadas, widgets, dashboards y dashboards públicos.
-- PostgreSQL como almacenamiento de metadatos y drivers para bases analíticas comunes.
+- Editor SQL, consultas guardadas, widgets, dashboards, programaciones, auditoría y dashboards públicos.
+- PostgreSQL como almacenamiento de metadatos y drivers para PostgreSQL, MySQL, SQL Server, SQLite/CSV, BigQuery y Snowflake.
 
 ## Principios de documentación
 

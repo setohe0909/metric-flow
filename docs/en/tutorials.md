@@ -94,6 +94,50 @@ cd backend
 npm run test:e2e
 ```
 
+## Tutorial 7: Configure datasource policies
+
+Use this when different roles should see different rows or columns.
+
+1. Sign in as an administrator.
+2. Open **Datasources** and select the datasource.
+3. Open the access policy editor.
+4. Configure `READER` and/or `EDITOR` policies.
+5. Use `allowedColumns` to restrict visible columns.
+6. Use `rowFilter` to restrict rows, for example `region = 'LATAM'`.
+7. Save the policy and verify the result with a lower-privilege user.
+
+Policy checklist:
+
+- Start with the smallest useful restriction.
+- Test with representative dashboards and saved queries.
+- Do not use row filters as a replacement for database-level least privilege.
+
+## Tutorial 8: Schedule a query report
+
+1. Save a query with a clear name.
+2. Open **Programar envío** / schedule delivery from the SQL editor.
+3. Add one or more email recipients.
+4. Pick a frequency or provide a custom cron expression.
+5. Choose `csv`, `html`, or `json`.
+6. Save the schedule.
+7. Review schedule history after it runs.
+
+If SMTP is not configured, MetricFlow logs the report payload to the backend console instead of sending email.
+
+## Tutorial 9: Review audit and hardening signals
+
+1. Sign in as an administrator or editor.
+2. Use audit data to review dashboard publishing, public dashboard views, and schedule changes.
+3. Investigate failed executions using execution status, error messages, and schedule history.
+4. Revoke public dashboard sharing when a link should no longer be accessible.
+
+Security review checklist:
+
+- Public dashboard links are intentional and current.
+- Datasource policies match role expectations.
+- Scheduled recipients are still valid.
+- Secrets are stored only in environment variables or encrypted datasource settings.
+
 ## Next step
 
-Read the [contributing guide](./contributing.md) before opening an issue or pull request.
+Read the [feature catalog](./features.md), [configuration reference](./configuration.md), and [security hardening guide](./security-hardening.md) before opening an issue or pull request.
