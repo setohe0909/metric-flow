@@ -225,12 +225,12 @@ export default function DatasourceManager() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-2 border-[#23251d] pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b-2 border-[var(--color-border-strong)] pb-6">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-[#23251d] flex items-center gap-2.5 font-mono">
-            <Database className="h-6 w-6 text-[#f7a501]" /> Conectores
+          <h1 className="text-2xl font-extrabold tracking-tight text-[var(--color-ink)] flex items-center gap-2.5 font-mono">
+            <Database className="h-6 w-6 text-[var(--color-accent)]" /> Conectores
           </h1>
-          <p className="text-xs text-[#4d4f46] mt-1 font-mono">
+          <p className="text-xs text-[var(--color-muted-text)] mt-1 font-mono">
             Conecta y administra tus fuentes de datos para realizar reportes interactivos.
           </p>
         </div>
@@ -239,13 +239,13 @@ export default function DatasourceManager() {
             onClick={() => setShowForm(true)}
             className="btn-retro-primary font-mono text-xs"
           >
-            <Plus className="h-4 w-4 text-[#23251d]" /> Nueva Conexión
+            <Plus className="h-4 w-4 text-[var(--color-on-accent)]" /> Nueva Conexión
           </button>
         )}
       </div>
 
       {successWarning && (
-        <div className="rounded-xl bg-amber-50 border-2 border-[#23251d] p-4 flex gap-3 text-xs font-bold font-mono text-amber-800 shadow-[3px_3px_0px_0px_#23251d]">
+        <div className="rounded-xl bg-[color-mix(in_srgb,var(--color-accent)_16%,var(--color-widget))] border-2 border-[var(--color-border-strong)] p-4 flex gap-3 text-xs font-bold font-mono text-amber-800 shadow-[3px_3px_0px_0px_var(--color-border-strong)]">
           <Info className="h-5 w-5 flex-shrink-0 text-amber-600" />
           <div className="space-y-1">
             <p>Conexión guardada con advertencia de conectividad:</p>
@@ -259,21 +259,21 @@ export default function DatasourceManager() {
 
       {showForm ? (
         /* Formulario de Conexión */
-        <div className="bg-[#eeefe9] border-2 border-[#23251d] rounded-2xl shadow-[6px_6px_0px_0px_#23251d] overflow-hidden max-w-2xl">
+        <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border-strong)] rounded-2xl shadow-[6px_6px_0px_0px_var(--color-border-strong)] overflow-hidden max-w-2xl">
           {/* Form OS Title Bar */}
-          <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-3 flex items-center justify-between">
+          <div className="bg-[var(--color-widget-header)] border-b-2 border-[var(--color-border-strong)] px-4 py-3 flex items-center justify-between">
             <div className="flex gap-1.5 shrink-0">
               <div className="w-3.5 h-3.5 rounded-full window-circle-red" />
               <div className="w-3.5 h-3.5 rounded-full window-circle-yellow" />
               <div className="w-3.5 h-3.5 rounded-full window-circle-green" />
             </div>
-            <span className="text-xs font-bold text-[#23251d] font-mono">new-connection.sh</span>
+            <span className="text-xs font-bold text-[var(--color-ink)] font-mono">new-connection.sh</span>
             <button
               onClick={() => {
                 setShowForm(false);
                 resetForm();
               }}
-              className="text-[#4d4f46] hover:text-[#23251d]"
+              className="text-[var(--color-muted-text)] hover:text-[var(--color-ink)]"
             >
               <X className="h-4 w-4" />
             </button>
@@ -282,7 +282,7 @@ export default function DatasourceManager() {
           <form onSubmit={handleSave} className="p-6 space-y-6">
             {/* Tipo de conector */}
             <div>
-              <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+              <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                 Tipo de Base de Datos
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -291,10 +291,10 @@ export default function DatasourceManager() {
                     key={type}
                     type="button"
                     onClick={() => handleDbTypeChange(type)}
-                    className={`py-3 px-4 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-2 transition-all font-mono shadow-[2px_2px_0px_0px_#23251d] hover:shadow-[1px_1px_0px_0px_#23251d] hover:translate-x-[1px] hover:translate-y-[1px] ${
+                    className={`py-3 px-4 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-2 transition-all font-mono shadow-[var(--shadow-retro-soft)] hover:shadow-[1px_1px_0px_0px_var(--color-border-strong)] hover:translate-x-[1px] hover:translate-y-[1px] ${
                       dbType === type
-                        ? 'border-[#23251d] bg-[#f7a501] text-[#23251d]'
-                        : 'border-[#23251d] bg-white text-[#4d4f46] hover:bg-[#f4f4f0]'
+                        ? 'border-[var(--color-border-strong)] bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                        : 'border-[var(--color-border-strong)] bg-[var(--color-widget)] text-[var(--color-muted-text)] hover:bg-[var(--color-muted-surface)]'
                     }`}
                   >
                     <Database className="h-5 w-5" />
@@ -320,7 +320,7 @@ export default function DatasourceManager() {
 
             {/* Nombre del conector */}
             <div>
-              <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+              <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                 Nombre descriptivo
               </label>
               <input
@@ -328,7 +328,7 @@ export default function DatasourceManager() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                 placeholder="ej. Base de Datos de Ventas - Prod"
               />
             </div>
@@ -336,7 +336,7 @@ export default function DatasourceManager() {
             {dbType === 'sqlite' || dbType === 'csv' ? (
               /* Drag and drop zone para SQLite / CSV */
               <div className="space-y-3">
-                <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                   Subir Archivo {dbType === 'csv' ? 'CSV' : 'SQLite'}
                 </label>
                 
@@ -346,11 +346,11 @@ export default function DatasourceManager() {
                   onDrop={handleDrop}
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[160px] relative font-mono ${
                     isDragging
-                      ? 'border-[#f7a501] bg-[#f7a501]/5 text-[#f7a501]'
+                      ? 'border-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] text-[var(--color-accent)]'
                       : selectedFile
-                      ? 'border-emerald-600 bg-emerald-500/5 text-emerald-700'
-                      : 'border-[#23251d] bg-white hover:bg-[#f4f4f0] text-[#4d4f46]'
-                  } shadow-[2px_2px_0px_0px_#23251d]`}
+                      ? 'border-emerald-600 bg-[color-mix(in_srgb,#22c55e_10%,var(--color-widget))] text-[var(--color-ink)]'
+                      : 'border-[var(--color-border-strong)] bg-[var(--color-widget)] hover:bg-[var(--color-muted-surface)] text-[var(--color-muted-text)]'
+                  } shadow-[var(--shadow-retro-soft)]`}
                 >
                   <input
                     type="file"
@@ -361,7 +361,7 @@ export default function DatasourceManager() {
                   
                   {selectedFile ? (
                     <div className="flex flex-col items-center gap-3">
-                      <div className="p-3 bg-emerald-500/10 border-2 border-emerald-600 rounded-xl text-emerald-700">
+                      <div className="p-3 bg-[color-mix(in_srgb,#22c55e_12%,var(--color-widget))] border-2 border-emerald-600 rounded-xl text-[var(--color-ink)]">
                         <File className="h-8 w-8" />
                       </div>
                       <div className="z-20 text-center">
@@ -379,21 +379,21 @@ export default function DatasourceManager() {
                           e.stopPropagation();
                           setSelectedFile(null);
                         }}
-                        className="mt-2 text-[10px] flex items-center gap-1 text-[#23251d] bg-[#ffa4a4] border-2 border-[#23251d] px-2.5 py-1 rounded-lg transition-all z-20 shadow-[1px_1px_0px_0px_#23251d] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                        className="mt-2 text-[10px] flex items-center gap-1 text-[var(--color-ink)] bg-[var(--color-danger)] border-2 border-[var(--color-border-strong)] px-2.5 py-1 rounded-lg transition-all z-20 shadow-[1px_1px_0px_0px_var(--color-border-strong)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
                       >
                         <X className="h-3 w-3" /> Quitar archivo
                       </button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2.5 pointer-events-none">
-                      <div className="p-3 bg-[#f4f4f0] border-2 border-[#23251d] rounded-xl text-[#f7a501]">
-                        <UploadCloud className="h-8 w-8 text-[#23251d]" />
+                      <div className="p-3 bg-[var(--color-muted-surface)] border-2 border-[var(--color-border-strong)] rounded-xl text-[var(--color-accent)]">
+                        <UploadCloud className="h-8 w-8 text-[var(--color-ink)]" />
                       </div>
                       <div>
-                        <p className="text-xs font-extrabold text-[#23251d]">
+                        <p className="text-xs font-extrabold text-[var(--color-ink)]">
                           Arrastra tu archivo aquí o haz clic para buscar
                         </p>
-                        <p className="text-[10px] text-[#4d4f46] mt-1.5">
+                        <p className="text-[10px] text-[var(--color-muted-text)] mt-1.5">
                           Soporta {dbType === 'csv' ? 'CSV (.csv)' : 'SQLite (.sqlite, .db)'} hasta 20MB
                         </p>
                       </div>
@@ -406,7 +406,7 @@ export default function DatasourceManager() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       ID del Proyecto GCP
                     </label>
                     <input
@@ -414,12 +414,12 @@ export default function DatasourceManager() {
                       required
                       value={projectId}
                       onChange={(e) => setProjectId(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="my-gcp-project"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Dataset (Base de Datos)
                     </label>
                     <input
@@ -427,14 +427,14 @@ export default function DatasourceManager() {
                       required
                       value={database}
                       onChange={(e) => setDatabase(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="my_dataset"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                  <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                     Service Account Key JSON
                   </label>
                   <textarea
@@ -442,7 +442,7 @@ export default function DatasourceManager() {
                     rows={4}
                     value={serviceAccountJson}
                     onChange={(e) => setServiceAccountJson(e.target.value)}
-                    className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                    className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                     placeholder='{ "type": "service_account", "project_id": ... }'
                   />
                 </div>
@@ -452,7 +452,7 @@ export default function DatasourceManager() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Identificador de Cuenta
                     </label>
                     <input
@@ -460,12 +460,12 @@ export default function DatasourceManager() {
                       required
                       value={account}
                       onChange={(e) => setAccount(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="xy12345.us-east-2.aws"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Warehouse (Almacén)
                     </label>
                     <input
@@ -473,7 +473,7 @@ export default function DatasourceManager() {
                       required
                       value={warehouse}
                       onChange={(e) => setWarehouse(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="COMPUTE_WH"
                     />
                   </div>
@@ -481,7 +481,7 @@ export default function DatasourceManager() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Usuario
                     </label>
                     <input
@@ -489,12 +489,12 @@ export default function DatasourceManager() {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="usuario"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Contraseña
                     </label>
                     <input
@@ -502,7 +502,7 @@ export default function DatasourceManager() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="••••••••"
                     />
                   </div>
@@ -510,7 +510,7 @@ export default function DatasourceManager() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Base de Datos
                     </label>
                     <input
@@ -518,19 +518,19 @@ export default function DatasourceManager() {
                       required
                       value={database}
                       onChange={(e) => setDatabase(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="MY_DATABASE"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Esquema (Schema)
                     </label>
                     <input
                       type="text"
                       value={schema}
                       onChange={(e) => setSchema(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="PUBLIC (opcional)"
                     />
                   </div>
@@ -541,7 +541,7 @@ export default function DatasourceManager() {
               <>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Host / Endpoint
                     </label>
                     <input
@@ -549,12 +549,12 @@ export default function DatasourceManager() {
                       required
                       value={host}
                       onChange={(e) => setHost(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="rds.amazonaws.com o localhost"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Puerto
                     </label>
                     <input
@@ -562,14 +562,14 @@ export default function DatasourceManager() {
                       required
                       value={port}
                       onChange={(e) => setPort(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Usuario
                     </label>
                     <input
@@ -577,12 +577,12 @@ export default function DatasourceManager() {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder={dbType === 'sqlserver' ? 'sa' : 'postgres'}
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Contraseña
                     </label>
                     <input
@@ -590,14 +590,14 @@ export default function DatasourceManager() {
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="••••••••"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                  <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                     Nombre de la Base de Datos
                   </label>
                   <input
@@ -605,21 +605,21 @@ export default function DatasourceManager() {
                     required
                     value={database}
                     onChange={(e) => setDatabase(e.target.value)}
-                    className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                    className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                     placeholder="production_db"
                   />
                 </div>
 
                 {dbType === 'sqlserver' && (
                   <div>
-                    <label className="block text-[10px] font-bold text-[#4d4f46] uppercase tracking-wider mb-2 font-mono">
+                    <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
                       Schema por defecto
                     </label>
                     <input
                       type="text"
                       value={schema}
                       onChange={(e) => setSchema(e.target.value)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-white text-[#23251d] placeholder-slate-400 focus:outline-none focus:border-[#f7a501] transition-all text-sm font-mono shadow-[2px_2px_0px_0px_#23251d]"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
                       placeholder="dbo (opcional)"
                     />
                   </div>
@@ -631,10 +631,10 @@ export default function DatasourceManager() {
                     type="checkbox"
                     checked={ssl}
                     onChange={(e) => setSsl(e.target.checked)}
-                    className="h-4 w-4 rounded border-2 border-[#23251d] bg-white text-[#f7a501] focus:ring-0 cursor-pointer"
+                    className="h-4 w-4 rounded border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] text-[var(--color-accent)] focus:ring-0 cursor-pointer"
                   />
-                  <label htmlFor="ssl" className="text-xs font-bold font-mono text-[#23251d] flex items-center gap-1.5 cursor-pointer">
-                    <Shield className="h-4 w-4 text-[#f7a501]" /> Requerir conexión segura (TLS/SSL)
+                  <label htmlFor="ssl" className="text-xs font-bold font-mono text-[var(--color-ink)] flex items-center gap-1.5 cursor-pointer">
+                    <Shield className="h-4 w-4 text-[var(--color-accent)]" /> Requerir conexión segura (TLS/SSL)
                   </label>
                 </div>
               </>
@@ -643,10 +643,10 @@ export default function DatasourceManager() {
             {/* Mensajes de feedback */}
             {testResult && (
               <div
-                className={`rounded-xl p-4 border-2 font-mono text-xs font-bold shadow-[2px_2px_0px_0px_#23251d] ${
+                className={`rounded-xl p-4 border-2 font-mono text-xs font-bold shadow-[var(--shadow-retro-soft)] ${
                   testResult.success
-                    ? 'bg-emerald-50 border-[#23251d] text-emerald-800 flex items-center gap-2'
-                    : 'bg-red-50 border-[#23251d] text-red-800 flex items-center gap-2'
+                    ? 'bg-[color-mix(in_srgb,#22c55e_14%,var(--color-widget))] border-[var(--color-border-strong)] text-[var(--color-ink)] flex items-center gap-2'
+                    : 'bg-[var(--color-error-surface)] border-[var(--color-border-strong)] text-[var(--color-ink)] flex items-center gap-2'
                 }`}
               >
                 {testResult.success ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <AlertCircle className="h-5 w-5 text-red-600" />}
@@ -655,14 +655,14 @@ export default function DatasourceManager() {
             )}
 
             {errorMessage && (
-              <div className="rounded-xl p-4 border-2 bg-red-50 border-[#23251d] text-red-800 flex items-center gap-2 text-xs font-bold font-mono shadow-[2px_2px_0px_0px_#23251d]">
+              <div className="rounded-xl p-4 border-2 bg-[var(--color-error-surface)] border-[var(--color-border-strong)] text-[var(--color-ink)] flex items-center gap-2 text-xs font-bold font-mono shadow-[var(--shadow-retro-soft)]">
                 <AlertCircle className="h-5 w-5 text-red-600" />
                 <span>{errorMessage}</span>
               </div>
             )}
 
             {/* Acciones */}
-            <div className="flex items-center justify-end gap-3 border-t-2 border-[#23251d]/10 pt-4 font-mono">
+            <div className="flex items-center justify-end gap-3 border-t-2 border-[color-mix(in_srgb,var(--color-border-strong)_10%,transparent)] pt-4 font-mono">
               <button
                 type="button"
                 onClick={() => {
@@ -692,7 +692,7 @@ export default function DatasourceManager() {
                     <Loader2 className="animate-spin h-4 w-4" />
                   ) : (
                     <>
-                      <Play className="h-4 w-4 text-[#f7a501]" /> Probar Conexión
+                      <Play className="h-4 w-4 text-[var(--color-accent)]" /> Probar Conexión
                     </>
                   )}
                 </button>
@@ -707,7 +707,7 @@ export default function DatasourceManager() {
                   <Loader2 className="animate-spin h-4 w-4" />
                 ) : (
                   <>
-                    <Save className="h-4 w-4 text-[#23251d]" /> Guardar Conexión
+                    <Save className="h-4 w-4 text-[var(--color-on-accent)]" /> Guardar Conexión
                   </>
                 )}
               </button>
@@ -719,38 +719,38 @@ export default function DatasourceManager() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {isLoading ? (
             <div className="col-span-2 py-12 flex justify-center">
-              <Loader2 className="animate-spin h-8 w-8 text-[#f7a501]" />
+              <Loader2 className="animate-spin h-8 w-8 text-[var(--color-accent)]" />
             </div>
           ) : datasources.length === 0 ? (
-            <div className="col-span-2 border-2 border-dashed border-[#23251d] rounded-2xl p-12 flex flex-col items-center justify-center text-center bg-white shadow-[4px_4px_0px_0px_#23251d] font-mono">
-              <div className="p-4 bg-[#f4f4f0] border-2 border-[#23251d] rounded-2xl mb-4">
-                <Database className="h-8 w-8 text-[#f7a501]" />
+            <div className="col-span-2 border-2 border-dashed border-[var(--color-border-strong)] rounded-2xl p-12 flex flex-col items-center justify-center text-center bg-[var(--color-widget)] shadow-[var(--shadow-retro-strong)] font-mono">
+              <div className="p-4 bg-[var(--color-muted-surface)] border-2 border-[var(--color-border-strong)] rounded-2xl mb-4">
+                <Database className="h-8 w-8 text-[var(--color-accent)]" />
               </div>
-              <h3 className="text-base font-extrabold text-[#23251d]">No hay conectores registrados</h3>
-              <p className="text-xs text-[#4d4f46] max-w-sm mt-1 mb-6 leading-relaxed">
+              <h3 className="text-base font-extrabold text-[var(--color-ink)]">No hay conectores registrados</h3>
+              <p className="text-xs text-[var(--color-muted-text)] max-w-sm mt-1 mb-6 leading-relaxed">
                 Conecta PostgreSQL, MySQL, SQL Server o SQLite para empezar a crear consultas SQL.
               </p>
               <button
                 onClick={() => setShowForm(true)}
                 className="btn-retro-primary"
               >
-                <Plus className="h-4 w-4 text-[#23251d]" /> Agregar primer conector
+                <Plus className="h-4 w-4 text-[var(--color-on-accent)]" /> Agregar primer conector
               </button>
             </div>
           ) : (
             datasources.map((ds: Datasource) => (
               <div key={ds.id} className="flex flex-col gap-3">
                 <SpotlightCard
-                  className="min-h-[140px] hover:border-[#f7a501] !p-0"
+                  className="min-h-[140px] hover:border-[var(--color-accent)] !p-0"
                 >
                   {/* Retro OS Header Bar */}
-                  <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-2.5 flex items-center justify-between gap-3">
+                  <div className="bg-[var(--color-widget-header)] border-b-2 border-[var(--color-border-strong)] px-4 py-2.5 flex items-center justify-between gap-3">
                     <div className="flex gap-1.5 shrink-0">
                       <div className="w-3 h-3 rounded-full window-circle-red" />
                       <div className="w-3 h-3 rounded-full window-circle-yellow" />
                       <div className="w-3 h-3 rounded-full window-circle-green" />
                     </div>
-                    <span className="text-xs font-bold text-[#23251d] truncate font-mono flex-1 text-center">
+                    <span className="text-xs font-bold text-[var(--color-ink)] truncate font-mono flex-1 text-center">
                       {ds.name}.db
                     </span>
                     <button
@@ -759,7 +759,7 @@ export default function DatasourceManager() {
                           deleteDatasource(ds.id);
                         }
                       }}
-                      className="text-[#4d4f46] hover:text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg border-2 border-transparent hover:border-[#23251d] transition-all"
+                      className="text-[var(--color-muted-text)] hover:text-red-500 hover:bg-[color-mix(in_srgb,var(--color-danger)_14%,transparent)] p-1.5 rounded-lg border-2 border-transparent hover:border-[var(--color-border-strong)] transition-all"
                       title="Eliminar conector"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -769,26 +769,26 @@ export default function DatasourceManager() {
                   {/* Card Body */}
                   <div className="p-5 flex-1 flex flex-col justify-between">
                     <div>
-                      <h3 className="text-base font-extrabold text-[#23251d] font-mono truncate">{ds.name}</h3>
-                      <p className="text-xs text-[#4d4f46] capitalize mt-2 flex flex-wrap items-center gap-1.5 font-mono">
-                        <span className="px-2 py-0.5 bg-[#f4f4f0] border-2 border-[#23251d] rounded font-bold text-[10px] text-[#23251d] uppercase">
+                      <h3 className="text-base font-extrabold text-[var(--color-ink)] font-mono truncate">{ds.name}</h3>
+                      <p className="text-xs text-[var(--color-muted-text)] capitalize mt-2 flex flex-wrap items-center gap-1.5 font-mono">
+                        <span className="px-2 py-0.5 bg-[var(--color-muted-surface)] border-2 border-[var(--color-border-strong)] rounded font-bold text-[10px] text-[var(--color-ink)] uppercase">
                           {ds.type}
                         </span>
                         {(ds as any).connectionSettings?.host && (
-                          <span className="bg-white px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold text-[#23251d]">
+                          <span className="bg-[var(--color-widget)] px-2 py-0.5 border-2 border-[var(--color-border-strong)] rounded text-[10px] font-bold text-[var(--color-ink)]">
                             {(ds as any).connectionSettings.host}
                           </span>
                         )}
                         {(ds as any).connectionSettings?.database && (
-                          <span className="bg-white px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold text-[#23251d]">
+                          <span className="bg-[var(--color-widget)] px-2 py-0.5 border-2 border-[var(--color-border-strong)] rounded text-[10px] font-bold text-[var(--color-ink)]">
                             DB: {(ds as any).connectionSettings.database}
                           </span>
                         )}
                         {/* Badge de políticas activas */}
                         {(ds as any).hasPolicies && (
                           <span
-                            className="flex items-center gap-1 px-2 py-0.5 border-2 border-[#23251d] rounded text-[10px] font-bold font-mono"
-                            style={{ backgroundColor: '#f7a501', color: '#23251d' }}
+                            className="flex items-center gap-1 px-2 py-0.5 border-2 border-[var(--color-border-strong)] rounded text-[10px] font-bold font-mono"
+                            style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-on-accent)' }}
                           >
                             <Shield className="h-2.5 w-2.5" />
                             Políticas activas
@@ -799,18 +799,18 @@ export default function DatasourceManager() {
 
                     {/* Botón de políticas — solo para owner */}
                     {isOwner && (
-                      <div className="mt-4 pt-4 border-t-2 border-[#23251d]/10">
+                      <div className="mt-4 pt-4 border-t-2 border-[color-mix(in_srgb,var(--color-border-strong)_10%,transparent)]">
                         <button
                           onClick={() =>
                             setExpandedPolicyId(
                               expandedPolicyId === ds.id ? null : ds.id,
                             )
                           }
-                          className="flex items-center gap-1.5 text-[10px] font-bold font-mono px-3 py-1.5 border-2 border-[#23251d] rounded-lg transition-all"
+                          className="flex items-center gap-1.5 text-[10px] font-bold font-mono px-3 py-1.5 border-2 border-[var(--color-border-strong)] rounded-lg transition-all"
                           style={{
-                            backgroundColor: expandedPolicyId === ds.id ? '#f7a501' : 'transparent',
-                            color: '#23251d',
-                            boxShadow: '2px 2px 0px 0px #23251d',
+                            backgroundColor: expandedPolicyId === ds.id ? 'var(--color-accent)' : 'transparent',
+                            color: expandedPolicyId === ds.id ? 'var(--color-on-accent)' : 'var(--color-ink)',
+                            boxShadow: '2px 2px 0px 0px var(--color-border-strong)',
                           }}
                         >
                           <Shield className="h-3 w-3" />

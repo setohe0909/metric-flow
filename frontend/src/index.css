@@ -217,16 +217,37 @@ body {
 }
 
 .dashboard-studio-canvas .react-grid-item > .react-resizable-handle {
-  right: -8px !important;
-  bottom: -8px !important;
-  height: 28px !important;
-  width: 28px !important;
   border: 2px solid var(--color-border-strong);
   border-radius: 999px;
   background: var(--color-accent) !important;
   box-shadow: 2px 2px 0 0 var(--color-ink);
   opacity: 1 !important;
   z-index: 50;
+}
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-se {
+  right: -10px !important;
+  bottom: -10px !important;
+  height: 34px !important;
+  width: 34px !important;
+}
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-e {
+  right: -8px !important;
+  top: 50% !important;
+  bottom: auto !important;
+  height: 58px !important;
+  width: 20px !important;
+  transform: translateY(-50%);
+}
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-s {
+  left: 50% !important;
+  right: auto !important;
+  bottom: -8px !important;
+  height: 20px !important;
+  width: 58px !important;
+  transform: translateX(-50%);
 }
 
 .dashboard-studio-canvas .react-grid-item > .react-resizable-handle::after {
@@ -236,6 +257,18 @@ body {
   height: 8px !important;
   border-right: 3px solid var(--color-ink) !important;
   border-bottom: 3px solid var(--color-ink) !important;
+}
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-e::after {
+  right: 5px !important;
+  bottom: 22px !important;
+  border-bottom: 0 !important;
+}
+
+.dashboard-studio-canvas .react-grid-item > .react-resizable-handle-s::after {
+  right: 22px !important;
+  bottom: 5px !important;
+  border-right: 0 !important;
 }
 
 .dashboard-studio-canvas .react-grid-item.resizing,

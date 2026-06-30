@@ -106,35 +106,35 @@ export default function OrgSettings() {
     ADMIN: {
       label: 'Administrador',
       icon: Crown,
-      classes: 'bg-[#f7a501]/15 text-[#7b3e00] border-[#f7a501] border',
+      classes: 'bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] text-[#7b3e00] border-[var(--color-accent)] border',
     },
     EDITOR: {
       label: 'Editor',
       icon: Shield,
-      classes: 'bg-[#23251d]/10 text-[#23251d] border-[#23251d]/30 border',
+      classes: 'bg-[color-mix(in_srgb,var(--color-ink)_10%,transparent)] text-[var(--color-ink)] border-[color-mix(in_srgb,var(--color-border-strong)_30%,transparent)] border',
     },
     READER: {
       label: 'Lector',
       icon: Eye,
-      classes: 'bg-[#eeefe9] text-[#4d4f46] border-[#23251d]/20 border',
+      classes: 'bg-[var(--color-surface)] text-[var(--color-muted-text)] border-[color-mix(in_srgb,var(--color-border-strong)_20%,transparent)] border',
     },
   };
 
   return (
     <div className="space-y-6 font-mono">
       {/* ── Page Header ── */}
-      <div className="border-b-2 border-[#23251d] pb-5">
-        <h1 className="text-2xl font-extrabold tracking-tight text-[#23251d] flex items-center gap-2.5">
-          <Settings className="h-6 w-6 text-[#f7a501]" /> Ajustes
+      <div className="border-b-2 border-[var(--color-border-strong)] pb-5">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[var(--color-ink)] flex items-center gap-2.5">
+          <Settings className="h-6 w-6 text-[var(--color-accent)]" /> Ajustes
         </h1>
-        <p className="text-xs text-[#4d4f46] mt-1">
+        <p className="text-xs text-[var(--color-muted-text)] mt-1">
           Administra tu organización, roles e invita a miembros del equipo.
         </p>
       </div>
 
       {isLoadingOrg ? (
-        <div className="py-16 flex flex-col items-center justify-center gap-3 text-[#4d4f46]">
-          <Loader2 className="animate-spin h-7 w-7 text-[#f7a501]" />
+        <div className="py-16 flex flex-col items-center justify-center gap-3 text-[var(--color-muted-text)]">
+          <Loader2 className="animate-spin h-7 w-7 text-[var(--color-accent)]" />
           <span className="text-xs font-bold">Cargando configuración...</span>
         </div>
       ) : (
@@ -144,11 +144,11 @@ export default function OrgSettings() {
           <div className="lg:col-span-1 space-y-5">
 
             {/* Org Profile Card */}
-            <div className="border-2 border-[#23251d] rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#23251d] bg-white">
+            <div className="border-2 border-[var(--color-border-strong)] rounded-2xl overflow-hidden shadow-[var(--shadow-retro-strong)] bg-[var(--color-widget)]">
               {/* Card Title Bar */}
-              <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 font-extrabold text-[#23251d] text-sm">
-                  <Building2 className="h-4 w-4 text-[#f7a501]" /> Perfil de la Organización
+              <div className="bg-[var(--color-widget-header)] border-b-2 border-[var(--color-border-strong)] px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-extrabold text-[var(--color-ink)] text-sm">
+                  <Building2 className="h-4 w-4 text-[var(--color-accent)]" /> Perfil de la Organización
                 </div>
                 <div className="flex gap-1">
                   <div className="w-3 h-3 rounded-full window-circle-red" />
@@ -159,7 +159,7 @@ export default function OrgSettings() {
 
               <form onSubmit={handleUpdateName} className="p-5 space-y-4">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider mb-1.5">
                     Nombre comercial
                   </label>
                   <input
@@ -168,34 +168,34 @@ export default function OrgSettings() {
                     required
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
-                    className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-[#eeefe9] text-[#23251d] placeholder-[#4d4f46]/50 focus:outline-none focus:border-[#f7a501] focus:shadow-[0_0_0_3px_rgba(247,165,1,0.15)] transition-all text-sm font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-surface)] text-[var(--color-ink)] placeholder-[color-mix(in_srgb,var(--color-muted-text)_50%,transparent)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(247,165,1,0.15)] transition-all text-sm font-mono disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Mi Empresa S.A."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider mb-1.5">
+                  <label className="block text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider mb-1.5">
                     Identificador (Slug)
                   </label>
                   <input
                     type="text"
                     disabled
                     value={orgDetails?.slug || ''}
-                    className="w-full px-3 py-2.5 border-2 border-[#23251d]/20 rounded-xl bg-[#eeefe9]/60 text-[#4d4f46] text-sm font-mono cursor-not-allowed"
+                    className="w-full px-3 py-2.5 border-2 border-[color-mix(in_srgb,var(--color-border-strong)_20%,transparent)] rounded-xl bg-[color-mix(in_srgb,var(--color-surface)_60%,transparent)] text-[var(--color-muted-text)] text-sm font-mono cursor-not-allowed"
                   />
-                  <p className="text-[10px] text-[#4d4f46]/70 mt-1.5">
+                  <p className="text-[10px] text-[color-mix(in_srgb,var(--color-muted-text)_70%,transparent)] mt-1.5">
                     Identificador interno del workspace.
                   </p>
                 </div>
 
                 {saveStatus === 'success' && (
-                  <div className="bg-[#d4f5e1] border-2 border-[#23251d] rounded-xl p-3 flex items-center gap-2 text-[#0a5e2a] text-xs font-extrabold shadow-[2px_2px_0px_0px_#23251d]">
+                  <div className="bg-[color-mix(in_srgb,#22c55e_14%,var(--color-widget))] border-2 border-[var(--color-border-strong)] rounded-xl p-3 flex items-center gap-2 text-[var(--color-ink)] text-xs font-extrabold shadow-[var(--shadow-retro-soft)]">
                     <CheckCircle className="h-4 w-4 flex-shrink-0" /> Nombre actualizado con éxito.
                   </div>
                 )}
 
                 {saveStatus === 'error' && (
-                  <div className="bg-red-50 border-2 border-[#23251d] rounded-xl p-3 flex items-center gap-2 text-red-700 text-xs font-extrabold shadow-[2px_2px_0px_0px_#23251d]">
+                  <div className="bg-[var(--color-error-surface)] border-2 border-[var(--color-border-strong)] rounded-xl p-3 flex items-center gap-2 text-red-700 text-xs font-extrabold shadow-[var(--shadow-retro-soft)]">
                     <AlertTriangle className="h-4 w-4 flex-shrink-0" /> Error al actualizar el nombre.
                   </div>
                 )}
@@ -220,10 +220,10 @@ export default function OrgSettings() {
 
             {/* Invite Member Card */}
             {isAdmin && (
-              <div className="border-2 border-[#23251d] rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#23251d] bg-white">
-                <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2 font-extrabold text-[#23251d] text-sm">
-                    <UserPlus className="h-4 w-4 text-[#f7a501]" /> Invitar Miembro
+              <div className="border-2 border-[var(--color-border-strong)] rounded-2xl overflow-hidden shadow-[var(--shadow-retro-strong)] bg-[var(--color-widget)]">
+                <div className="bg-[var(--color-widget-header)] border-b-2 border-[var(--color-border-strong)] px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-extrabold text-[var(--color-ink)] text-sm">
+                    <UserPlus className="h-4 w-4 text-[var(--color-accent)]" /> Invitar Miembro
                   </div>
                   <div className="flex gap-1">
                     <div className="w-3 h-3 rounded-full window-circle-red" />
@@ -234,54 +234,54 @@ export default function OrgSettings() {
 
                 <form onSubmit={handleInvite} className="p-5 space-y-4">
                   <div>
-                    <label className="block text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider mb-1.5">
                       Correo Electrónico
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-[#4d4f46]" />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-[var(--color-muted-text)]" />
                       <input
                         type="email"
                         required
                         placeholder="ejemplo@empresa.com"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-[#eeefe9] text-[#23251d] placeholder-[#4d4f46]/50 focus:outline-none focus:border-[#f7a501] focus:shadow-[0_0_0_3px_rgba(247,165,1,0.15)] transition-all text-sm font-mono"
+                        className="w-full pl-9 pr-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-surface)] text-[var(--color-ink)] placeholder-[color-mix(in_srgb,var(--color-muted-text)_50%,transparent)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(247,165,1,0.15)] transition-all text-sm font-mono"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider mb-1.5">
+                    <label className="block text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider mb-1.5">
                       Rol Asignado
                     </label>
                     <select
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value as any)}
-                      className="w-full px-3 py-2.5 border-2 border-[#23251d] rounded-xl bg-[#eeefe9] text-[#23251d] focus:outline-none focus:border-[#f7a501] focus:shadow-[0_0_0_3px_rgba(247,165,1,0.15)] transition-all text-sm font-mono font-bold cursor-pointer"
+                      className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-surface)] text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-accent)] focus:shadow-[0_0_0_3px_rgba(247,165,1,0.15)] transition-all text-sm font-mono font-bold cursor-pointer"
                     >
-                      <option value="READER" className="bg-white text-[#23251d]">Lector</option>
-                      <option value="EDITOR" className="bg-white text-[#23251d]">Editor</option>
-                      <option value="ADMIN" className="bg-white text-[#23251d]">Administrador</option>
+                      <option value="READER" className="bg-[var(--color-widget)] text-[var(--color-ink)]">Lector</option>
+                      <option value="EDITOR" className="bg-[var(--color-widget)] text-[var(--color-ink)]">Editor</option>
+                      <option value="ADMIN" className="bg-[var(--color-widget)] text-[var(--color-ink)]">Administrador</option>
                     </select>
                   </div>
 
                   {inviteStatus === 'success' && (
-                    <div className="bg-[#d4f5e1] border-2 border-[#23251d] rounded-xl p-3 flex items-center gap-2 text-[#0a5e2a] text-xs font-extrabold shadow-[2px_2px_0px_0px_#23251d]">
+                    <div className="bg-[color-mix(in_srgb,#22c55e_14%,var(--color-widget))] border-2 border-[var(--color-border-strong)] rounded-xl p-3 flex items-center gap-2 text-[var(--color-ink)] text-xs font-extrabold shadow-[var(--shadow-retro-soft)]">
                       <CheckCircle className="h-4 w-4 flex-shrink-0" /> Miembro agregado exitosamente.
                     </div>
                   )}
 
                   {temporaryPassword && (
-                    <div role="status" className="rounded-xl border-2 border-[#23251d] bg-[#fff4d6] p-3 text-xs">
+                    <div role="status" className="rounded-xl border-2 border-[var(--color-border-strong)] bg-[color-mix(in_srgb,var(--color-accent)_16%,var(--color-widget))] p-3 text-xs">
                       <strong>Contraseña temporal — se muestra una sola vez:</strong>
-                      <code className="mt-2 block break-all rounded bg-white p-2 font-mono">
+                      <code className="mt-2 block break-all rounded bg-[var(--color-widget)] p-2 font-mono">
                         {temporaryPassword}
                       </code>
                     </div>
                   )}
 
                   {inviteStatus === 'error' && (
-                    <div className="bg-red-50 border-2 border-[#23251d] rounded-xl p-3 flex items-center gap-2 text-red-700 text-xs font-extrabold shadow-[2px_2px_0px_0px_#23251d]">
+                    <div className="bg-[var(--color-error-surface)] border-2 border-[var(--color-border-strong)] rounded-xl p-3 flex items-center gap-2 text-red-700 text-xs font-extrabold shadow-[var(--shadow-retro-soft)]">
                       <AlertTriangle className="h-4 w-4 flex-shrink-0" /> {inviteError}
                     </div>
                   )}
@@ -306,14 +306,14 @@ export default function OrgSettings() {
 
           {/* ── Right Column: Members Table ── */}
           <div className="lg:col-span-2">
-            <div className="border-2 border-[#23251d] rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_#23251d] bg-white h-full flex flex-col">
+            <div className="border-2 border-[var(--color-border-strong)] rounded-2xl overflow-hidden shadow-[var(--shadow-retro-strong)] bg-[var(--color-widget)] h-full flex flex-col">
               {/* Card Title Bar */}
-              <div className="bg-[#e4e5de] border-b-2 border-[#23251d] px-4 py-3 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-2 font-extrabold text-[#23251d] text-sm">
-                  <Users className="h-4 w-4 text-[#f7a501]" /> Miembros Activos
+              <div className="bg-[var(--color-widget-header)] border-b-2 border-[var(--color-border-strong)] px-4 py-3 flex items-center justify-between flex-shrink-0">
+                <div className="flex items-center gap-2 font-extrabold text-[var(--color-ink)] text-sm">
+                  <Users className="h-4 w-4 text-[var(--color-accent)]" /> Miembros Activos
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-extrabold text-[#23251d] bg-[#f7a501] border border-[#23251d] px-2 py-0.5 rounded-full uppercase">
+                  <span className="text-[10px] font-extrabold text-[var(--color-on-accent)] bg-[var(--color-accent)] border border-[var(--color-border-strong)] px-2 py-0.5 rounded-full uppercase">
                     {orgDetails?.memberships?.length ?? 0} total
                   </span>
                   <div className="flex gap-1">
@@ -328,21 +328,21 @@ export default function OrgSettings() {
               <div className="flex-1 overflow-auto min-h-0">
                 <table className="w-full text-left text-xs font-mono">
                   <thead className="sticky top-0 z-10">
-                    <tr className="bg-[#eeefe9] border-b-2 border-[#23251d]">
-                      <th className="py-3 px-4 text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider">
+                    <tr className="bg-[var(--color-surface)] border-b-2 border-[var(--color-border-strong)]">
+                      <th className="py-3 px-4 text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider">
                         Usuario
                       </th>
-                      <th className="py-3 px-4 text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider">
+                      <th className="py-3 px-4 text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider">
                         Email
                       </th>
-                      <th className="py-3 px-4 text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider">
+                      <th className="py-3 px-4 text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider">
                         Rol
                       </th>
-                      <th className="py-3 px-4 text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider">
+                      <th className="py-3 px-4 text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider">
                         Miembro desde
                       </th>
                       {isAdmin && (
-                        <th className="py-3 px-4 text-[10px] font-extrabold text-[#4d4f46] uppercase tracking-wider text-right">
+                        <th className="py-3 px-4 text-[10px] font-extrabold text-[var(--color-muted-text)] uppercase tracking-wider text-right">
                           Acciones
                         </th>
                       )}
@@ -357,14 +357,14 @@ export default function OrgSettings() {
                       return (
                         <tr
                           key={membership.id}
-                          className={`border-b border-[#23251d]/10 transition-colors hover:bg-[#eeefe9] ${
-                            idx % 2 === 0 ? 'bg-white' : 'bg-[#f8f8f4]'
+                          className={`border-b border-[color-mix(in_srgb,var(--color-border-strong)_10%,transparent)] transition-colors hover:bg-[var(--color-surface)] ${
+                            idx % 2 === 0 ? 'bg-[var(--color-widget)]' : 'bg-[var(--color-surface)]'
                           }`}
                         >
-                          <td className="py-3.5 px-4 font-extrabold text-[#23251d] whitespace-nowrap">
+                          <td className="py-3.5 px-4 font-extrabold text-[var(--color-ink)] whitespace-nowrap">
                             {user.firstName} {user.lastName || ''}
                           </td>
-                          <td className="py-3.5 px-4 text-[#4d4f46] truncate max-w-[180px]">
+                          <td className="py-3.5 px-4 text-[var(--color-muted-text)] truncate max-w-[180px]">
                             {user.email}
                           </td>
                           <td className="py-3.5 px-4">
@@ -380,7 +380,7 @@ export default function OrgSettings() {
                                       | 'READER',
                                   })
                                 }
-                                className="rounded border border-[#23251d] bg-white px-2 py-1"
+                                className="rounded border border-[var(--color-border-strong)] bg-[var(--color-widget)] px-2 py-1"
                               >
                                 <option value="ADMIN">Administrador</option>
                                 <option value="EDITOR">Editor</option>
@@ -395,7 +395,7 @@ export default function OrgSettings() {
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 text-[#4d4f46] text-[11px]">
+                          <td className="py-3.5 px-4 text-[var(--color-muted-text)] text-[11px]">
                             {new Date(membership.createdAt).toLocaleDateString('es', {
                               year: 'numeric',
                               month: 'short',
@@ -410,7 +410,7 @@ export default function OrgSettings() {
                                     onClick={() =>
                                       handleResetPassword(membership.id)
                                     }
-                                    className="p-1.5 rounded-lg hover:bg-[#fff4d6]"
+                                    className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--color-accent)_16%,var(--color-widget))]"
                                     title="Restablecer contraseña"
                                   >
                                     <KeyRound className="h-3.5 w-3.5" />
@@ -422,7 +422,7 @@ export default function OrgSettings() {
                                         disabled: !user.disabledAt,
                                       })
                                     }
-                                    className="p-1.5 rounded-lg hover:bg-[#fff4d6]"
+                                    className="p-1.5 rounded-lg hover:bg-[color-mix(in_srgb,var(--color-accent)_16%,var(--color-widget))]"
                                     title={
                                       user.disabledAt
                                         ? 'Reactivar usuario'
@@ -438,7 +438,7 @@ export default function OrgSettings() {
                                         user.email,
                                       )
                                     }
-                                    className="p-1.5 text-[#4d4f46] hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                    className="p-1.5 text-[var(--color-muted-text)] hover:text-red-600 hover:bg-[color-mix(in_srgb,var(--color-danger)_14%,transparent)] rounded-lg"
                                     title="Remover miembro"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -455,7 +455,7 @@ export default function OrgSettings() {
 
                 {/* Empty State */}
                 {(!orgDetails?.memberships || orgDetails.memberships.length === 0) && (
-                  <div className="flex flex-col items-center justify-center py-16 text-[#4d4f46]">
+                  <div className="flex flex-col items-center justify-center py-16 text-[var(--color-muted-text)]">
                     <Users className="h-8 w-8 mb-3 opacity-30" />
                     <p className="text-xs font-bold">No hay miembros en la organización</p>
                     <p className="text-[10px] opacity-70 mt-1">Usa el formulario de invitación para agregar personas.</p>

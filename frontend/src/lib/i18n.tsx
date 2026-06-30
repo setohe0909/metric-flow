@@ -393,6 +393,7 @@ const TRANSLATIONS: Record<Locale, TranslationMap> = {
 };
 
 const ATTRIBUTES_TO_TRANSLATE = ['placeholder', 'title', 'aria-label'] as const;
+const originalTextNodes = new WeakMap<Text, string>();
 
 function normalizeLocale(value?: string | null): Locale | null {
   if (!value) return null;
@@ -425,13 +426,13 @@ function translateTextNode(node: Text, locale: Locale) {
   if (!parent) return;
 
   const currentText = node.textContent ?? '';
-  const original = parent.dataset.i18nOriginalText ?? currentText;
+  const original = originalTextNodes.get(node) ?? currentText;
   const trimmed = original.trim();
   if (!trimmed) return;
 
   const translated = translate(trimmed, locale);
   const nextText = original.replace(trimmed, translated);
-  parent.dataset.i18nOriginalText = trimmed;
+  originalTextNodes.set(node, original);
 
   if (currentText !== nextText) {
     node.textContent = nextText;

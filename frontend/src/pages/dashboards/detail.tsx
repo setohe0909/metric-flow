@@ -53,6 +53,39 @@ const normalizeLayout = (layout: any[]) =>
     }))
     .sort((a, b) => a.i.localeCompare(b.i));
 
+const collides = (item: any, other: any) => (
+  item.i !== other.i &&
+  item.x < other.x + other.w &&
+  item.x + item.w > other.x &&
+  item.y < other.y + other.h &&
+  item.y + item.h > other.y
+);
+
+const compactLayout = (layout: any[]) => {
+  const sorted = normalizeLayout(layout).sort((a, b) => (
+    a.y === b.y ? a.x - b.x : a.y - b.y
+  ));
+  const compacted: any[] = [];
+
+  for (const rawItem of sorted) {
+    const item = { ...rawItem, y: Math.max(0, rawItem.y) };
+
+    while (item.y > 0) {
+      const candidate = { ...item, y: item.y - 1 };
+      if (compacted.some((other) => collides(candidate, other))) break;
+      item.y -= 1;
+    }
+
+    while (compacted.some((other) => collides(item, other))) {
+      item.y += 1;
+    }
+
+    compacted.push(item);
+  }
+
+  return compacted;
+};
+
 const layoutItemsAreEqual = (current: any[], next: any[]) => {
   const currentLayout = normalizeLayout(current);
   const nextLayout = normalizeLayout(next);
@@ -72,7 +105,7 @@ const layoutItemsAreEqual = (current: any[], next: any[]) => {
 
 const mergeWidgetLayouts = (current: any[], widgets: DashboardWidget[]) => {
   const currentById = new Map(normalizeLayout(current).map((item) => [item.i, item]));
-  return widgets.map((widget) => {
+  return compactLayout(widgets.map((widget) => {
     const currentItem = currentById.get(widget.id);
     const widgetLayout = toWidgetLayout(widget);
 
@@ -84,7 +117,7 @@ const mergeWidgetLayouts = (current: any[], widgets: DashboardWidget[]) => {
     }
 
     return currentItem;
-  });
+  }));
 };
 
 export default function DashboardDetail() {
@@ -158,7 +191,7 @@ export default function DashboardDetail() {
     setLocalLayouts((current) => {
       const next = isEditingLayout
         ? mergeWidgetLayouts(current, activeWidgets)
-        : activeWidgets.map(toWidgetLayout);
+        : compactLayout(activeWidgets.map(toWidgetLayout));
       return layoutItemsAreEqual(current, next) ? current : next;
     });
   }, [activeWidgets, isEditingLayout]);
@@ -232,7 +265,10 @@ export default function DashboardDetail() {
       visualConfig: Record<string, any>;
     }>;
     const config = defaults[type];
-    const layoutY = Math.max(0, ...activeWidgets.map((widget) => widget.layoutY + widget.layoutH));
+    const compactedLayout = compactLayout(localLayouts.length
+      ? localLayouts
+      : activeWidgets.map(toWidgetLayout));
+    const layoutY = Math.max(0, ...compactedLayout.map((item) => item.y + item.h));
     const created = await createWidget({
       dashboardId: dashboard.id,
       pageId,
@@ -248,7 +284,7 @@ export default function DashboardDetail() {
     });
     setLocalLayouts((current) => {
       const next = [
-        ...current,
+        ...(current.length ? compactLayout(current) : compactedLayout),
         {
           i: created.id,
           x: 0,
@@ -257,7 +293,7 @@ export default function DashboardDetail() {
           h: config.layoutH,
         },
       ];
-      return layoutItemsAreEqual(current, next) ? current : next;
+      return compactLayout(next);
     });
     setSelectedWidgetId(created.id);
     setIsEditingLayout(true);
@@ -285,7 +321,7 @@ export default function DashboardDetail() {
 
   const handleSaveLayout = async () => {
     try {
-      const layoutsPayload = localLayouts.map((l) => ({
+      const layoutsPayload = compactLayout(localLayouts).map((l) => ({
         id: l.i,
         x: l.x,
         y: l.y,
@@ -302,7 +338,7 @@ export default function DashboardDetail() {
   const handleCancelLayout = () => {
     if (activeWidgets) {
       setLocalLayouts(
-        activeWidgets.map(toWidgetLayout)
+        compactLayout(activeWidgets.map(toWidgetLayout))
       );
     }
     setIsEditingLayout(false);
@@ -345,8 +381,36 @@ export default function DashboardDetail() {
   const handleLayoutInteraction = (nextLayout: any) => {
     if (!isEditingLayout) return;
     setLocalLayouts((current) => (
-      layoutItemsAreEqual(current, nextLayout) ? current : nextLayout
+      layoutItemsAreEqual(current, nextLayout) ? current : normalizeLayout(nextLayout)
     ));
+  };
+
+  const handleResizeWidgetByStep = (
+    widgetId: string,
+    delta: { w?: number; h?: number },
+  ) => {
+    setSelectedWidgetId(widgetId);
+    setLocalLayouts((current) => {
+      const baseLayout = current.length
+        ? normalizeLayout(current)
+        : compactLayout(activeWidgets.map(toWidgetLayout));
+      const next = baseLayout.map((item) => {
+        if (item.i !== widgetId) return item;
+
+        const nextW = Math.min(12, Math.max(2, item.w + (delta.w ?? 0)));
+        const nextH = Math.min(10, Math.max(1, item.h + (delta.h ?? 0)));
+        const nextX = Math.min(item.x, 12 - nextW);
+
+        return {
+          ...item,
+          x: Math.max(0, nextX),
+          w: nextW,
+          h: nextH,
+        };
+      });
+
+      return compactLayout(next);
+    });
   };
 
   return (
@@ -562,7 +626,7 @@ export default function DashboardDetail() {
                     style={{ boxShadow: 'var(--shadow-retro-soft)' }}
                   >
                     {/* Fake code editor titlebar */}
-                    <div className="bg-[#23251d] px-4 py-2 flex items-center gap-2">
+                    <div className="bg-[var(--color-ink)] px-4 py-2 flex items-center gap-2">
                       <div className="w-2.5 h-2.5 rounded-full bg-red-500 opacity-70" />
                       <div className="w-2.5 h-2.5 rounded-full bg-yellow-400 opacity-70" />
                       <div className="w-2.5 h-2.5 rounded-full bg-green-500 opacity-70" />
@@ -645,13 +709,15 @@ export default function DashboardDetail() {
               rowHeight={80}
               isDraggable={isEditingLayout}
               isResizable={isEditingLayout}
-              resizeHandles={['se']}
-              compactType={isEditingLayout ? null : 'vertical'}
-              isBounded={isEditingLayout}
+              resizeHandles={['se', 'e', 's']}
+              compactType="vertical"
+              isBounded={false}
               useCSSTransforms={!isEditingLayout}
               draggableHandle=".drag-handle"
               draggableCancel=".react-resizable-handle, input, textarea, button, a"
+              onDrag={handleLayoutInteraction}
               onDragStop={handleLayoutInteraction}
+              onResize={handleLayoutInteraction}
               onResizeStop={handleLayoutInteraction}
               margin={isEditingLayout ? [16, 16] : [20, 20]}
             >
@@ -684,6 +750,29 @@ export default function DashboardDetail() {
                     <span className="text-xs font-extrabold text-[var(--color-ink)] truncate font-mono flex-1 text-center select-none">
                       {widget.title}.json
                     </span>
+                    {isEditingLayout && selectedWidgetId === widget.id && (
+                      <div className="flex items-center gap-1">
+                        {[
+                          { label: 'W−', title: 'Reducir ancho', delta: { w: -1 } },
+                          { label: 'W+', title: 'Aumentar ancho', delta: { w: 1 } },
+                          { label: 'H−', title: 'Reducir alto', delta: { h: -1 } },
+                          { label: 'H+', title: 'Aumentar alto', delta: { h: 1 } },
+                        ].map((control) => (
+                          <button
+                            key={control.label}
+                            type="button"
+                            title={control.title}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleResizeWidgetByStep(widget.id, control.delta);
+                            }}
+                            className="rounded-md border border-[var(--color-border-strong)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[9px] font-black text-[var(--color-ink)] shadow-[1px_1px_0_0_var(--color-border-strong)] hover:bg-[var(--color-accent)]"
+                          >
+                            {control.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {!isViewer && !isEditingLayout && (
                       <button
                         onClick={() => handleDeleteWidget(widget.id, widget.title)}
