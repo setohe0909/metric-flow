@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider, LanguageSwitcher } from './lib/i18n';
 import { ThemeProvider, ThemeToggle } from './lib/theme';
@@ -28,38 +28,55 @@ const queryClient = new QueryClient({
   },
 });
 
+const protectedPreferenceControlPaths = ['/', '/dashboards', '/queries', '/datasources', '/settings', '/docs'];
+
+function GlobalPreferenceControls() {
+  const { pathname } = useLocation();
+  const isHandledByPageChrome = protectedPreferenceControlPaths.some((path) =>
+    path === '/' ? pathname === path : pathname === path || pathname.startsWith(`${path}/`),
+  );
+
+  if (isHandledByPageChrome) {
+    return null;
+  }
+
+  return (
+    <div className="fixed right-4 top-4 z-[100] flex items-center gap-2 print:hidden">
+      <ThemeToggle />
+      <LanguageSwitcher />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <ThemeProvider>
           <BrowserRouter>
-            <div className="fixed right-4 top-4 z-[100] flex items-center gap-2 print:hidden">
-              <ThemeToggle />
-              <LanguageSwitcher />
-            </div>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/setup" element={<Setup />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/change-password" element={<ChangePassword />} />
-            <Route path="/shared/dashboard/:token" element={<PublicDashboardView />} />
-            <Route path="/docs/*" element={<Docs />} />
+            <GlobalPreferenceControls />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/setup" element={<Setup />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="/shared/dashboard/:token" element={<PublicDashboardView />} />
+              <Route path="/docs/*" element={<Docs />} />
 
-            {/* Protected Routes */}
-            <Route element={<AppLayout />}>
-              <Route path="/dashboards" element={<DashboardList />} />
-              <Route path="/dashboards/:id" element={<DashboardDetail />} />
-              <Route path="/dashboards/:dashboardId/widgets/new" element={<WidgetCreator />} />
-              <Route path="/queries" element={<QueryEditor />} />
-              <Route path="/datasources" element={<DatasourceManager />} />
-              <Route path="/settings" element={<OrgSettings />} />
-              <Route path="/" element={<Navigate to="/dashboards" replace />} />
-            </Route>
+              {/* Protected Routes */}
+              <Route element={<AppLayout />}>
+                <Route path="/dashboards" element={<DashboardList />} />
+                <Route path="/dashboards/:id" element={<DashboardDetail />} />
+                <Route path="/dashboards/:dashboardId/widgets/new" element={<WidgetCreator />} />
+                <Route path="/queries" element={<QueryEditor />} />
+                <Route path="/datasources" element={<DatasourceManager />} />
+                <Route path="/settings" element={<OrgSettings />} />
+                <Route path="/" element={<Navigate to="/dashboards" replace />} />
+              </Route>
 
-            {/* Fallback redirect */}
-            <Route path="*" element={<Navigate to="/dashboards" replace />} />
-          </Routes>
+              {/* Fallback redirect */}
+              <Route path="*" element={<Navigate to="/dashboards" replace />} />
+            </Routes>
           </BrowserRouter>
         </ThemeProvider>
       </I18nProvider>

@@ -14,6 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { SetupModule } from './setup/setup.module';
 import { AuditModule } from './audit/audit.module';
+import { SharePointModule } from './sharepoint/sharepoint.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AuditModule } from './audit/audit.module';
     SchedulerModule,
     SetupModule,
     AuditModule,
+    SharePointModule,
   ],
   controllers: [AppController],
   providers: [AppService],

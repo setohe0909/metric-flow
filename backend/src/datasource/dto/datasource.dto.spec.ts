@@ -22,4 +22,20 @@ describe('CreateDatasourceDto', () => {
 
     expect(errors).toHaveLength(0);
   });
+
+  it('accepts sharepoint as a supported datasource type with tenant credentials', async () => {
+    const dto = plainToInstance(CreateDatasourceDto, {
+      name: 'Corporate SharePoint',
+      type: 'sharepoint',
+      connectionSettings: {
+        tenantId: 'tenant-123',
+        clientId: 'client-123',
+        clientSecret: 'secret-value',
+      },
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
+  });
 });

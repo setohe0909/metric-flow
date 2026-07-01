@@ -62,6 +62,23 @@ export class ConnectionSettingsDto {
   @IsOptional()
   @IsString()
   schema?: string; // ej. "PUBLIC"
+
+  // --- SharePoint / Microsoft Graph ---
+  @IsOptional()
+  @IsString()
+  tenantId?: string;
+
+  @IsOptional()
+  @IsString()
+  clientId?: string;
+
+  @IsOptional()
+  @IsString()
+  clientSecret?: string;
+
+  @IsOptional()
+  @IsString()
+  authorityHost?: string;
 }
 
 export class CreateDatasourceDto {
@@ -78,6 +95,7 @@ export class CreateDatasourceDto {
       'csv',
       'bigquery',
       'snowflake',
+      'sharepoint',
     ],
     {
       message: 'Tipo de base de datos no soportado',

@@ -4,7 +4,70 @@ import type { Datasource } from '@/features/datasources/hooks/use-datasources';
 import { PolicyEditor } from '@/features/datasources/components/policy-editor';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { SpotlightCard } from '@/components/spotlight-card';
-import { Database, Plus, Trash2, Shield, Play, Save, CheckCircle2, AlertCircle, Loader2, UploadCloud, File, X, Info } from 'lucide-react';
+import {
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  Cloud,
+  Database,
+  File,
+  Info,
+  KeyRound,
+  ListChecks,
+  Loader2,
+  Play,
+  Plus,
+  Save,
+  Shield,
+  Trash2,
+  UploadCloud,
+  X,
+} from 'lucide-react';
+
+type ConnectorType =
+  | 'postgres'
+  | 'mysql'
+  | 'sqlserver'
+  | 'sqlite'
+  | 'csv'
+  | 'bigquery'
+  | 'snowflake'
+  | 'sharepoint';
+
+const CONNECTOR_TYPES: ConnectorType[] = [
+  'postgres',
+  'mysql',
+  'sqlserver',
+  'sqlite',
+  'csv',
+  'bigquery',
+  'snowflake',
+  'sharepoint',
+];
+
+const CONNECTOR_LABELS: Record<ConnectorType, string> = {
+  postgres: 'PostgreSQL',
+  mysql: 'MySQL',
+  sqlserver: 'SQL Server',
+  sqlite: 'SQLite',
+  csv: 'CSV',
+  bigquery: 'BigQuery',
+  snowflake: 'Snowflake',
+  sharepoint: 'SharePoint',
+};
+
+const CONNECTOR_SUMMARIES: Record<ConnectorType, string> = {
+  postgres: 'Relational SQL',
+  mysql: 'Relational SQL',
+  sqlserver: 'Enterprise SQL',
+  sqlite: 'Local file DB',
+  csv: 'Upload table',
+  bigquery: 'Cloud warehouse',
+  snowflake: 'Cloud warehouse',
+  sharepoint: 'Lists, libraries, files',
+};
+
+type SharePointField = 'tenantId' | 'clientId' | 'clientSecret';
 
 export default function DatasourceManager() {
   const {
@@ -27,7 +90,7 @@ export default function DatasourceManager() {
   const [expandedPolicyId, setExpandedPolicyId] = useState<string | null>(null);
 
   const [showForm, setShowForm] = useState(false);
-  const [dbType, setDbType] = useState<'postgres' | 'mysql' | 'sqlserver' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake'>('postgres');
+  const [dbType, setDbType] = useState<ConnectorType>('postgres');
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
   const [port, setPort] = useState(5432);
@@ -45,6 +108,15 @@ export default function DatasourceManager() {
   const [account, setAccount] = useState('');
   const [warehouse, setWarehouse] = useState('');
   const [schema, setSchema] = useState('');
+
+  // SharePoint specific fields
+  const [tenantId, setTenantId] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [authorityHost, setAuthorityHost] = useState('');
+  const [sharePointFieldErrors, setSharePointFieldErrors] = useState<
+    Partial<Record<SharePointField, string>>
+  >({});
   
   // Estados para subida de archivos
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -74,11 +146,18 @@ export default function DatasourceManager() {
     setAccount('');
     setWarehouse('');
     setSchema('');
+    setTenantId('');
+    setClientId('');
+    setClientSecret('');
+    setAuthorityHost('');
+    setSharePointFieldErrors({});
   };
 
-  const handleDbTypeChange = (type: 'postgres' | 'mysql' | 'sqlserver' | 'sqlite' | 'csv' | 'bigquery' | 'snowflake') => {
+  const handleDbTypeChange = (type: ConnectorType) => {
     setDbType(type);
     setTestResult(null);
+    setErrorMessage(null);
+    setSharePointFieldErrors({});
     setSelectedFile(null);
     if (type === 'postgres') setPort(5432);
     else if (type === 'mysql') setPort(3306);
@@ -106,6 +185,14 @@ export default function DatasourceManager() {
         schema: schema || 'PUBLIC',
       };
     }
+    if (dbType === 'sharepoint') {
+      return {
+        tenantId,
+        clientId,
+        clientSecret,
+        authorityHost: authorityHost || undefined,
+      };
+    }
     if (dbType === 'sqlserver') {
       return {
         host,
@@ -126,6 +213,37 @@ export default function DatasourceManager() {
       ssl,
     };
   };
+
+  const validateSharePointFields = () => {
+    const nextErrors: Partial<Record<SharePointField, string>> = {};
+
+    if (!tenantId.trim()) {
+      nextErrors.tenantId = 'Ingresa el tenant ID de Microsoft Entra.';
+    }
+    if (!clientId.trim()) {
+      nextErrors.clientId = 'Ingresa el client ID del app registration.';
+    }
+    if (!clientSecret.trim()) {
+      nextErrors.clientSecret = 'Ingresa el client secret para sincronizar contenido.';
+    }
+
+    setSharePointFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const getSharePointFieldClass = (field: SharePointField) =>
+    `w-full px-3 py-2.5 border-2 rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)] ${
+      sharePointFieldErrors[field]
+        ? 'border-red-500 focus:border-red-500'
+        : 'border-[var(--color-border-strong)] focus:border-[var(--color-accent)]'
+    }`;
+
+  const renderSharePointFieldError = (field: SharePointField) =>
+    sharePointFieldErrors[field] ? (
+      <p className="mt-1.5 text-[10px] font-bold text-red-500 font-mono">
+        {sharePointFieldErrors[field]}
+      </p>
+    ) : null;
 
   const handleTest = async () => {
     setTestResult(null);
@@ -153,6 +271,10 @@ export default function DatasourceManager() {
     setSuccessWarning(null);
     if (!name) {
       setErrorMessage('El nombre del conector es obligatorio.');
+      return;
+    }
+    if (dbType === 'sharepoint' && !validateSharePointFields()) {
+      setErrorMessage('Completa los campos requeridos de Microsoft Entra.');
       return;
     }
 
@@ -259,7 +381,7 @@ export default function DatasourceManager() {
 
       {showForm ? (
         /* Formulario de Conexión */
-        <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border-strong)] rounded-2xl shadow-[6px_6px_0px_0px_var(--color-border-strong)] overflow-hidden max-w-2xl">
+        <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border-strong)] rounded-2xl shadow-[6px_6px_0px_0px_var(--color-border-strong)] overflow-hidden max-w-4xl">
           {/* Form OS Title Bar */}
           <div className="bg-[var(--color-widget-header)] border-b-2 border-[var(--color-border-strong)] px-4 py-3 flex items-center justify-between">
             <div className="flex gap-1.5 shrink-0">
@@ -283,35 +405,30 @@ export default function DatasourceManager() {
             {/* Tipo de conector */}
             <div>
               <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
-                Tipo de Base de Datos
+                Tipo de conector
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {(['postgres', 'mysql', 'sqlserver', 'sqlite', 'csv', 'bigquery', 'snowflake'] as const).map((type) => (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {CONNECTOR_TYPES.map((type) => (
                   <button
                     key={type}
                     type="button"
                     onClick={() => handleDbTypeChange(type)}
-                    className={`py-3 px-4 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-2 transition-all font-mono shadow-[var(--shadow-retro-soft)] hover:shadow-[1px_1px_0px_0px_var(--color-border-strong)] hover:translate-x-[1px] hover:translate-y-[1px] ${
+                    className={`py-3 px-4 rounded-xl border-2 text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition-all font-mono shadow-[var(--shadow-retro-soft)] hover:shadow-[1px_1px_0px_0px_var(--color-border-strong)] hover:translate-x-[1px] hover:translate-y-[1px] ${
                       dbType === type
                         ? 'border-[var(--color-border-strong)] bg-[var(--color-accent)] text-[var(--color-on-accent)]'
                         : 'border-[var(--color-border-strong)] bg-[var(--color-widget)] text-[var(--color-muted-text)] hover:bg-[var(--color-muted-surface)]'
                     }`}
                   >
                     <Database className="h-5 w-5" />
-                    <span className="capitalize">
-                      {type === 'postgres'
-                        ? 'PostgreSQL'
-                        : type === 'mysql'
-                        ? 'MySQL'
-                        : type === 'sqlserver'
-                        ? 'SQL Server'
-                        : type === 'sqlite'
-                        ? 'SQLite'
-                        : type === 'csv'
-                        ? 'CSV'
-                        : type === 'bigquery'
-                        ? 'BigQuery'
-                        : 'Snowflake'}
+                    <span className="capitalize">{CONNECTOR_LABELS[type]}</span>
+                    <span
+                      className={`text-[9px] leading-tight ${
+                        dbType === type
+                          ? 'text-[color-mix(in_srgb,var(--color-on-accent)_72%,transparent)]'
+                          : 'text-[var(--color-subtle-text)]'
+                      }`}
+                    >
+                      {CONNECTOR_SUMMARIES[type]}
                     </span>
                   </button>
                 ))}
@@ -329,7 +446,11 @@ export default function DatasourceManager() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
-                placeholder="ej. Base de Datos de Ventas - Prod"
+                placeholder={
+                  dbType === 'sharepoint'
+                    ? 'ej. SharePoint corporativo'
+                    : 'ej. Base de Datos de Ventas - Prod'
+                }
               />
             </div>
 
@@ -536,6 +657,173 @@ export default function DatasourceManager() {
                   </div>
                 </div>
               </>
+            ) : dbType === 'sharepoint' ? (
+              /* Campos para SharePoint / Microsoft Graph */
+              <>
+                <div className="rounded-2xl border-2 border-[var(--color-border-strong)] bg-[color-mix(in_srgb,var(--color-accent)_14%,var(--color-widget))] p-5 font-mono shadow-[var(--shadow-retro-soft)]">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex gap-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--color-border-strong)] bg-[var(--color-accent)] shadow-[3px_3px_0px_0px_var(--color-border-strong)]">
+                        <Cloud className="h-6 w-6 text-[var(--color-on-accent)]" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--color-muted-text)]">
+                          Microsoft Graph setup
+                        </p>
+                        <h2 className="mt-1 text-lg font-extrabold leading-tight text-[var(--color-ink)]">
+                          SharePoint gobernado para dashboards
+                        </h2>
+                        <p className="mt-2 max-w-2xl text-xs font-bold leading-relaxed text-[var(--color-muted-text)]">
+                          Conecta una app de Microsoft Entra. Después de guardar podrás aprobar sitios,
+                          listas y bibliotecas específicas antes de usarlas en widgets.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center text-[9px] font-extrabold uppercase tracking-wide text-[var(--color-ink)]">
+                      <span className="rounded-lg border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] px-2 py-1">
+                        Lists
+                      </span>
+                      <span className="rounded-lg border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] px-2 py-1">
+                        Libraries
+                      </span>
+                      <span className="rounded-lg border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] px-2 py-1">
+                        Files
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+                  <div className="space-y-4 rounded-2xl border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] p-5 shadow-[var(--shadow-retro-soft)]">
+                    <div className="flex items-center gap-2 border-b-2 border-[color-mix(in_srgb,var(--color-border-strong)_16%,transparent)] pb-3">
+                      <KeyRound className="h-4 w-4 text-[var(--color-accent)]" />
+                      <div>
+                        <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--color-muted-text)]">
+                          1. Microsoft Entra App
+                        </p>
+                        <p className="text-xs font-bold text-[var(--color-ink)]">
+                          Credenciales de aplicación para sincronizar contenido aprobado.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
+                          Tenant ID
+                        </label>
+                        <input
+                          type="text"
+                          value={tenantId}
+                          onChange={(e) => {
+                            setTenantId(e.target.value);
+                            setSharePointFieldErrors((current) => ({
+                              ...current,
+                              tenantId: undefined,
+                            }));
+                          }}
+                          className={getSharePointFieldClass('tenantId')}
+                          placeholder="contoso tenant uuid"
+                          aria-invalid={Boolean(sharePointFieldErrors.tenantId)}
+                        />
+                        <p className="mt-1.5 text-[10px] font-bold text-[var(--color-subtle-text)] font-mono">
+                          Directorio donde vive tu SharePoint.
+                        </p>
+                        {renderSharePointFieldError('tenantId')}
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
+                          Client ID
+                        </label>
+                        <input
+                          type="text"
+                          value={clientId}
+                          onChange={(e) => {
+                            setClientId(e.target.value);
+                            setSharePointFieldErrors((current) => ({
+                              ...current,
+                              clientId: undefined,
+                            }));
+                          }}
+                          className={getSharePointFieldClass('clientId')}
+                          placeholder="app registration id"
+                          aria-invalid={Boolean(sharePointFieldErrors.clientId)}
+                        />
+                        <p className="mt-1.5 text-[10px] font-bold text-[var(--color-subtle-text)] font-mono">
+                          ID de la app registrada en Entra.
+                        </p>
+                        {renderSharePointFieldError('clientId')}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
+                        Client Secret
+                      </label>
+                      <input
+                        type="password"
+                        value={clientSecret}
+                        onChange={(e) => {
+                          setClientSecret(e.target.value);
+                          setSharePointFieldErrors((current) => ({
+                            ...current,
+                            clientSecret: undefined,
+                          }));
+                        }}
+                        className={getSharePointFieldClass('clientSecret')}
+                        placeholder="secret value"
+                        aria-invalid={Boolean(sharePointFieldErrors.clientSecret)}
+                      />
+                      <p className="mt-1.5 text-[10px] font-bold text-[var(--color-subtle-text)] font-mono">
+                        Se guarda cifrado y nunca se muestra de vuelta.
+                      </p>
+                      {renderSharePointFieldError('clientSecret')}
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-[var(--color-muted-text)] uppercase tracking-wider mb-2 font-mono">
+                        Authority Host
+                      </label>
+                      <input
+                        type="url"
+                        value={authorityHost}
+                        onChange={(e) => setAuthorityHost(e.target.value)}
+                        className="w-full px-3 py-2.5 border-2 border-[var(--color-border-strong)] rounded-xl bg-[var(--color-widget)] text-[var(--color-ink)] placeholder-[var(--color-subtle-text)] focus:outline-none focus:border-[var(--color-accent)] transition-all text-sm font-mono shadow-[var(--shadow-retro-soft)]"
+                        placeholder="https://login.microsoftonline.com"
+                      />
+                      <p className="mt-1.5 text-[10px] font-bold text-[var(--color-subtle-text)] font-mono">
+                        Déjalo vacío salvo tenants soberanos o configuración especial.
+                      </p>
+                    </div>
+                  </div>
+
+                  <aside className="space-y-3 rounded-2xl border-2 border-[var(--color-border-strong)] bg-[var(--color-surface)] p-5 font-mono shadow-[var(--shadow-retro-soft)]">
+                    <div className="flex items-center gap-2">
+                      <ListChecks className="h-4 w-4 text-[var(--color-accent)]" />
+                      <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--color-muted-text)]">
+                        2. Próximo paso
+                      </p>
+                    </div>
+                    <h3 className="text-sm font-extrabold text-[var(--color-ink)]">
+                      Aprobar contenido
+                    </h3>
+                    <p className="text-xs font-bold leading-relaxed text-[var(--color-muted-text)]">
+                      Después de guardar, QueryLens usará este conector para descubrir y aprobar
+                      sitios, listas y bibliotecas antes de exponerlos en dashboards.
+                    </p>
+                    <div className="rounded-xl border-2 border-[var(--color-border-strong)] bg-[var(--color-widget)] p-3">
+                      <div className="flex items-center gap-2 text-xs font-extrabold text-[var(--color-ink)]">
+                        <Building2 className="h-4 w-4 text-[var(--color-accent)]" />
+                        App-only access
+                      </div>
+                      <p className="mt-1 text-[10px] font-bold leading-relaxed text-[var(--color-subtle-text)]">
+                        Ideal para dashboards compartidos; los permisos por usuario quedan para una fase posterior.
+                      </p>
+                    </div>
+                  </aside>
+                </div>
+              </>
             ) : (
               /* Campos para bases de datos relacionales (Postgres / MySQL / SQL Server) */
               <>
@@ -674,7 +962,7 @@ export default function DatasourceManager() {
                 Cancelar
               </button>
 
-              {dbType !== 'sqlite' && dbType !== 'csv' && (
+              {dbType !== 'sqlite' && dbType !== 'csv' && dbType !== 'sharepoint' && (
                 <button
                   type="button"
                   onClick={handleTest}
@@ -707,7 +995,10 @@ export default function DatasourceManager() {
                   <Loader2 className="animate-spin h-4 w-4" />
                 ) : (
                   <>
-                    <Save className="h-4 w-4 text-[var(--color-on-accent)]" /> Guardar Conexión
+                    <Save className="h-4 w-4 text-[var(--color-on-accent)]" />{' '}
+                    {dbType === 'sharepoint'
+                      ? 'Guardar SharePoint'
+                      : 'Guardar Conexión'}
                   </>
                 )}
               </button>
@@ -728,7 +1019,7 @@ export default function DatasourceManager() {
               </div>
               <h3 className="text-base font-extrabold text-[var(--color-ink)]">No hay conectores registrados</h3>
               <p className="text-xs text-[var(--color-muted-text)] max-w-sm mt-1 mb-6 leading-relaxed">
-                Conecta PostgreSQL, MySQL, SQL Server o SQLite para empezar a crear consultas SQL.
+                Conecta bases SQL, archivos o SharePoint para empezar a crear dashboards.
               </p>
               <button
                 onClick={() => setShowForm(true)}
@@ -779,6 +1070,11 @@ export default function DatasourceManager() {
                             {(ds as any).connectionSettings.host}
                           </span>
                         )}
+                        {(ds as any).connectionSettings?.tenantId && (
+                          <span className="bg-[var(--color-widget)] px-2 py-0.5 border-2 border-[var(--color-border-strong)] rounded text-[10px] font-bold text-[var(--color-ink)]">
+                            Tenant: {(ds as any).connectionSettings.tenantId}
+                          </span>
+                        )}
                         {(ds as any).connectionSettings?.database && (
                           <span className="bg-[var(--color-widget)] px-2 py-0.5 border-2 border-[var(--color-border-strong)] rounded text-[10px] font-bold text-[var(--color-ink)]">
                             DB: {(ds as any).connectionSettings.database}
@@ -798,7 +1094,7 @@ export default function DatasourceManager() {
                     </div>
 
                     {/* Botón de políticas — solo para owner */}
-                    {isOwner && (
+                    {isOwner && ds.type !== 'sharepoint' && (
                       <div className="mt-4 pt-4 border-t-2 border-[color-mix(in_srgb,var(--color-border-strong)_10%,transparent)]">
                         <button
                           onClick={() =>
@@ -822,7 +1118,7 @@ export default function DatasourceManager() {
                 </SpotlightCard>
 
                 {/* PolicyEditor — desplegable bajo la card */}
-                {isOwner && expandedPolicyId === ds.id && (
+                {isOwner && ds.type !== 'sharepoint' && expandedPolicyId === ds.id && (
                   <PolicyEditor
                     datasourceId={ds.id}
                     datasourceName={ds.name}

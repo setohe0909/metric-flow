@@ -36,14 +36,16 @@ export class DatasourceService {
 
     // 1. Probar conexión antes de guardar (pero capturar error para permitir guardar de todos modos)
     let warning: string | undefined;
-    try {
-      await this.queryEngine.testConnection(
-        dto.type,
-        dto.connectionSettings,
-        orgId,
-      );
-    } catch (error) {
-      warning = `Conector guardado con advertencias: ${error.message}`;
+    if (dto.type !== 'sharepoint') {
+      try {
+        await this.queryEngine.testConnection(
+          dto.type,
+          dto.connectionSettings,
+          orgId,
+        );
+      } catch (error) {
+        warning = `Conector guardado con advertencias: ${error.message}`;
+      }
     }
 
     // 2. Encriptar credenciales sensibles (como el password de la DB)
@@ -54,6 +56,11 @@ export class DatasourceService {
     if (settingsCopy.serviceAccountJson) {
       settingsCopy.serviceAccountJson = this.encryption.encrypt(
         settingsCopy.serviceAccountJson,
+      );
+    }
+    if (settingsCopy.clientSecret) {
+      settingsCopy.clientSecret = this.encryption.encrypt(
+        settingsCopy.clientSecret,
       );
     }
 
@@ -340,6 +347,10 @@ export class DatasourceService {
       );
     }
 
+    if (copy.clientSecret && copy.clientSecret !== '••••••••') {
+      copy.clientSecret = this.encryption.decrypt(copy.clientSecret);
+    }
+
     return copy;
   }
 
@@ -354,6 +365,10 @@ export class DatasourceService {
 
     if (copy.serviceAccountJson) {
       copy.serviceAccountJson = '••••••••';
+    }
+
+    if (copy.clientSecret) {
+      copy.clientSecret = '••••••••';
     }
 
     return copy;

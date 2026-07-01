@@ -45,6 +45,8 @@ model Organization {
   auditLogs        AuditLog[]
   scheduledQueries ScheduledQuery[]
   installation     Installation?
+  sharePointResources SharePointApprovedResource[]
+  sharePointCachedRows SharePointCachedContent[]
 
   @@map("organizations")
 }
@@ -94,6 +96,7 @@ model Datasource {
 
   organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   queries            Query[]
+  sharePointResources SharePointApprovedResource[]
 
   @@map("datasources")
 }
@@ -254,4 +257,60 @@ model ScheduleHistory {
   scheduledQuery   ScheduledQuery @relation(fields: [scheduledQueryId], references: [id], onDelete: Cascade)
 
   @@map("schedule_histories")
+}
+
+model SharePointApprovedResource {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  datasourceId   String   @map("datasource_id") @db.Uuid
+  siteId         String   @map("site_id")
+  siteName       String   @map("site_name")
+  resourceType   String   @map("resource_type")
+  resourceId     String   @map("resource_id")
+  resourceName   String   @map("resource_name")
+  webUrl         String   @map("web_url")
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  datasource   Datasource                @relation(fields: [datasourceId], references: [id], onDelete: Cascade)
+  syncState    SharePointSyncState?
+  cachedRows   SharePointCachedContent[]
+
+  @@unique([organizationId, datasourceId, siteId, resourceType, resourceId], name: "unique_sharepoint_resource")
+  @@index([organizationId, datasourceId], map: "sharepoint_resources_org_datasource_idx")
+  @@map("sharepoint_approved_resources")
+}
+
+model SharePointSyncState {
+  id                 String    @id @default(uuid()) @db.Uuid
+  approvedResourceId String    @unique @map("approved_resource_id") @db.Uuid
+  status             String
+  lastStartedAt      DateTime? @map("last_started_at") @db.Timestamptz
+  lastCompletedAt    DateTime? @map("last_completed_at") @db.Timestamptz
+  lastError          String?   @map("last_error")
+  rowCount           Int       @default(0) @map("row_count")
+  deltaToken         String?   @map("delta_token")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  approvedResource SharePointApprovedResource @relation(fields: [approvedResourceId], references: [id], onDelete: Cascade)
+
+  @@map("sharepoint_sync_states")
+}
+
+model SharePointCachedContent {
+  id                 String   @id @default(uuid()) @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  approvedResourceId String   @map("approved_resource_id") @db.Uuid
+  contentType        String   @map("content_type")
+  rowData            Json     @map("row_data")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization     Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  approvedResource SharePointApprovedResource   @relation(fields: [approvedResourceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, approvedResourceId], map: "sharepoint_cached_content_org_resource_idx")
+  @@map("sharepoint_cached_content")
 }

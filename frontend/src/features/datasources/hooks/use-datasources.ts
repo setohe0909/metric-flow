@@ -11,7 +11,8 @@ export interface Datasource {
     | 'sqlite'
     | 'csv'
     | 'bigquery'
-    | 'snowflake';
+    | 'snowflake'
+    | 'sharepoint';
   connectionSettings: {
     host?: string;
     port?: number;
@@ -24,6 +25,10 @@ export interface Datasource {
     account?: string;
     warehouse?: string;
     schema?: string;
+    tenantId?: string;
+    clientId?: string;
+    clientSecret?: string;
+    authorityHost?: string;
   };
   createdAt: string;
 }

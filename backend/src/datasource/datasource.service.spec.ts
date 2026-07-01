@@ -73,6 +73,37 @@ describe('DatasourceService hardening', () => {
     });
   });
 
+  it('encrypts clientSecret before persisting a SharePoint datasource', async () => {
+    prisma.datasource.create.mockResolvedValue({
+      id: 'ds-sharepoint',
+      name: 'Corporate SharePoint',
+      type: 'sharepoint',
+    });
+
+    await service.create('org-1', {
+      name: 'Corporate SharePoint',
+      type: 'sharepoint',
+      connectionSettings: {
+        tenantId: 'tenant-123',
+        clientId: 'client-123',
+        clientSecret: 'plain-secret',
+      },
+    });
+
+    expect(encryption.encrypt).toHaveBeenCalledWith('plain-secret');
+    expect(prisma.datasource.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        organizationId: 'org-1',
+        type: 'sharepoint',
+        connectionSettings: JSON.stringify({
+          tenantId: 'tenant-123',
+          clientId: 'client-123',
+          clientSecret: 'enc:plain-secret',
+        }),
+      }),
+    });
+  });
+
   it('masks stored datasource secrets when listing datasources', async () => {
     prisma.datasource.findMany.mockResolvedValue([
       {
@@ -83,6 +114,18 @@ describe('DatasourceService hardening', () => {
           projectId: 'analytics-project',
           database: 'dataset',
           serviceAccountJson: 'enc:{"client_email":"svc@example.com"}',
+        }),
+        accessPolicies: null,
+        createdAt: new Date('2026-06-27T00:00:00.000Z'),
+      },
+      {
+        id: 'ds-3',
+        name: 'Corporate SharePoint',
+        type: 'sharepoint',
+        connectionSettings: JSON.stringify({
+          tenantId: 'tenant-123',
+          clientId: 'client-123',
+          clientSecret: 'enc:plain-secret',
         }),
         accessPolicies: null,
         createdAt: new Date('2026-06-27T00:00:00.000Z'),
@@ -108,6 +151,14 @@ describe('DatasourceService hardening', () => {
           projectId: 'analytics-project',
           database: 'dataset',
           serviceAccountJson: '••••••••',
+        }),
+      }),
+      expect.objectContaining({
+        id: 'ds-3',
+        connectionSettings: expect.objectContaining({
+          tenantId: 'tenant-123',
+          clientId: 'client-123',
+          clientSecret: '••••••••',
         }),
       }),
       expect.objectContaining({
